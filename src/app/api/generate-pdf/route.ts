@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
-import { generateContractPdf } from "@/utils/pdfGenerator";
+import { generateContractsPdf } from "@/utils/pdfGenerator";
 import { ExtractedData } from "@/types";
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json() as ExtractedData;
+    const dataList: ExtractedData[] = await req.json();
 
-    const buffer = await generateContractPdf(data);
+    if (!dataList || !Array.isArray(dataList) || dataList.length === 0) {
+      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+    }
+
+    const buffer = await generateContractsPdf(dataList);
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="Contrato_${data.nome.replace(/\s+/g, "_")}.pdf"`,
+        "Content-Disposition": `attachment; filename="Contratos.pdf"`,
       },
     });
   } catch (error: any) {

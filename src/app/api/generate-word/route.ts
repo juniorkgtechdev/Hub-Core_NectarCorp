@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import { generateContractDocx } from "@/utils/contractGenerator";
+import { generateContractsDocx } from "@/utils/contractGenerator";
 import { Packer } from "docx";
 import { ExtractedData } from "@/types";
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json() as ExtractedData;
+    const dataList: ExtractedData[] = await req.json();
 
-    const doc = generateContractDocx(data);
+    if (!dataList || !Array.isArray(dataList) || dataList.length === 0) {
+      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+    }
+
+    const doc = generateContractsDocx(dataList);
     const b64string = await Packer.toBase64String(doc);
     const buffer = Buffer.from(b64string, "base64");
 
@@ -15,7 +19,7 @@ export async function POST(req: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="Contrato_${data.nome.replace(/\s+/g, "_")}.docx"`,
+        "Content-Disposition": `attachment; filename="Contratos.docx"`,
       },
     });
   } catch (error: any) {

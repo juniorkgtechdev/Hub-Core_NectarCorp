@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: sistema-contratos-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpassword
+      POSTGRES_DB: sistema_contratos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   sistema-contratos:
     build:
       context: .
@@ -9,7 +22,15 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Insira a chave da API do Gemini aqui, ou passe via .env
+      # Chave da API do Gemini e URL do banco de dados
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=postgresql://admin:adminpassword@db:5432/sistema_contratos?schema=public
+      - NEXTAUTH_SECRET=super-secret-key-change-in-production
+      - NEXTAUTH_URL=http://localhost:3000
       - NODE_ENV=production
+    depends_on:
+      - db
     restart: unless-stopped
+
+volumes:
+  pgdata:

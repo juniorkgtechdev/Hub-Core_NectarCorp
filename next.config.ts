@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['100.75.2.18', 'localhost'],
+  output: 'standalone',
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['itsolution.nectarcorp.ia.br', 'localhost:3000'],
+    },
+  },
 };
 
 export default nextConfig;

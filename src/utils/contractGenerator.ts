@@ -31,6 +31,7 @@ export function generateContractDocx(data: ExtractedData): Document {
                       new ImageRun({
                         data: imageBuffer,
                         transformation: { width: 150, height: 60 },
+                        type: "png",
                       }),
                     ],
                   }),

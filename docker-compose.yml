@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  sistema-contratos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sistema-contratos-app
+    ports:
+      - "3000:3000"
+    environment:
+      # Insira a chave da API do Gemini aqui, ou passe via .env
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - NODE_ENV=production
+    restart: unless-stopped

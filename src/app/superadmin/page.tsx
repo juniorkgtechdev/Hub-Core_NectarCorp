@@ -13,7 +13,7 @@ export default async function AdminPage() {
 
   // Redirect if not logged in
   if (!session) {
-    redirect("/login");
+    redirect("/superadmin/login");
   }
 
   // Se 'role' estiver disponível na sessão, verifique:

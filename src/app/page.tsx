@@ -35,15 +35,15 @@ export default function Home() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
           </span>
-          Sistema Inteligente de Gestão
+          Hub Core de Soluções
         </div>
         
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
-          Nectar <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">IT Solutions</span>
+          Néctar Corp <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Hub Core</span>
         </h1>
         
         <p className="max-w-2xl text-lg md:text-xl text-slate-400 mb-10">
-          Transforme a maneira como sua empresa gerencia contratos, documentos e informações cadastrais. Tudo em uma única plataforma isolada e segura.
+          Central unificada de gestão corporativa. Conecte, controle e desenvolva todas as soluções, filiais e recursos da sua empresa em um único ecossistema integrado.
         </p>
         
         <Link 
@@ -51,7 +51,7 @@ export default function Home() {
           className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-slate-900 rounded-full font-semibold text-lg overflow-hidden transition-transform hover:scale-105 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
         >
           <span className="relative z-10 flex items-center gap-2">
-            Acessar Portal de Login <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            Acessar Ecossistema <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </span>
         </Link>
 
@@ -61,24 +61,24 @@ export default function Home() {
             <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-4 border border-indigo-500/30">
               <Server className="text-indigo-400 w-6 h-6" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Ambiente Isolado</h3>
-            <p className="text-slate-400">Arquitetura multi-tenant garantindo que os dados de cada empresa fiquem totalmente separados.</p>
+            <h3 className="text-xl font-semibold text-white mb-2">Ecossistema Integrado</h3>
+            <p className="text-slate-400">Conecte e gerencie todas as aplicações e sistemas da Néctar Corp a partir de um único hub centralizado.</p>
           </div>
           
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
             <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center mb-4 border border-cyan-500/30">
               <ShieldCheck className="text-cyan-400 w-6 h-6" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Segurança Total</h3>
-            <p className="text-slate-400">Autenticação avançada e validação de slugs para prevenir acessos cruzados ou não autorizados.</p>
+            <h3 className="text-xl font-semibold text-white mb-2">Gestão Multi-Tenant</h3>
+            <p className="text-slate-400">Isolamento total de dados entre diferentes empresas com controle absoluto de acessos e permissões.</p>
           </div>
           
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
             <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 border border-purple-500/30">
               <Zap className="text-purple-400 w-6 h-6" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Extração com IA</h3>
-            <p className="text-slate-400">Automação de extração de dados através de PDFs e imagens para geração instantânea de documentos.</p>
+            <h3 className="text-xl font-semibold text-white mb-2">Alta Performance</h3>
+            <p className="text-slate-400">Infraestrutura escalável preparada para suportar o desenvolvimento e crescimento contínuo de novas soluções.</p>
           </div>
         </div>
       </main>

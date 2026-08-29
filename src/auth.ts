@@ -17,8 +17,42 @@ export const {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" },
+        impersonateToken: { label: "Impersonate Token", type: "text" },
       },
       async authorize(credentials) {
+        // Lógica de Impersonation
+        if (credentials?.impersonateToken) {
+          const tokenRecord = await prisma.passwordResetToken.findUnique({
+            where: { token: credentials.impersonateToken as string },
+          });
+
+          if (!tokenRecord || tokenRecord.expires < new Date() || !tokenRecord.email.startsWith("impersonate:")) {
+            return null;
+          }
+
+          await prisma.passwordResetToken.delete({
+            where: { id: tokenRecord.id },
+          });
+
+          const targetEmail = tokenRecord.email.replace("impersonate:", "");
+          const user = await prisma.user.findUnique({
+            where: { email: targetEmail },
+            include: { tenant: true },
+          });
+
+          if (!user) return null;
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            tenantId: user.tenantId,
+            tenantSlug: user.tenant?.slug || null,
+          };
+        }
+
+        // Fluxo de login normal
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({

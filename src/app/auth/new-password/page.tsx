@@ -28,7 +28,7 @@ function NewPasswordForm() {
         <p className="text-slate-400 text-sm mb-8">
           O link que você acessou é inválido ou não possui um token de recuperação.
         </p>
-        <Link href="/login" className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors inline-flex items-center gap-2">
+        <Link href="/portal" className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors inline-flex items-center gap-2">
           Voltar para o Login <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -45,7 +45,7 @@ function NewPasswordForm() {
         <p className="text-slate-400 text-sm mb-8">
           Sua senha foi atualizada com sucesso. Você já pode acessar a plataforma.
         </p>
-        <Link href="/login" className="px-6 py-3 bg-[#D9AE55]/10 border border-[#D9AE55]/30 text-[#D9AE55] rounded-xl hover:bg-[#D9AE55]/20 transition-colors inline-flex items-center gap-2">
+        <Link href="/portal" className="px-6 py-3 bg-[#D9AE55]/10 border border-[#D9AE55]/30 text-[#D9AE55] rounded-xl hover:bg-[#D9AE55]/20 transition-colors inline-flex items-center gap-2">
           Ir para o Login <ArrowRight className="w-4 h-4" />
         </Link>
       </div>

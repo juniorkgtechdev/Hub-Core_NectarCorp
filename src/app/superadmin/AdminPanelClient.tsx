@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Edit2, Shield, Plus, Trash2, Building, Users } from "lucide-react";
+import { signIn } from "next-auth/react";
+import { Edit2, Shield, Plus, Trash2, Building, Users, LogIn } from "lucide-react";
 
 type Tenant = { id: string; name: string };
 type User = { id: string; name: string | null; email: string; role: string; tenantId: string | null; tenant?: Tenant | null };
@@ -151,6 +152,35 @@ export default function AdminPanelClient({
     setUserRole("USER");
     setUserTenant("");
     setUserPassword("");
+  };
+
+  const handleImpersonate = async (u: User) => {
+    try {
+      const res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: u.id }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Erro ao gerar token de acesso.");
+        return;
+      }
+
+      const { impersonateToken } = await res.json();
+
+      // Forçar o login via NextAuth Credentials com o token e redirecionar para a URL correta
+      const callbackUrl = u.tenant?.slug ? `/${u.tenant.slug}/dashboard` : "/";
+      
+      await signIn("credentials", {
+        impersonateToken,
+        callbackUrl,
+      });
+
+    } catch (error) {
+      alert("Erro ao tentar acessar como usuário.");
+    }
   };
 
   return (
@@ -335,8 +365,11 @@ export default function AdminPanelClient({
                           'bg-white/10 text-slate-400 border border-white/10'}`}>
                         {u.role}
                       </span>
-                      <button onClick={() => handleEditUser(u)} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">
+                      <button onClick={() => handleEditUser(u)} title="Editar Usuário" className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">
                         <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleImpersonate(u)} title="Acessar como (Impersonate)" className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-green-400 p-1 rounded-md hover:bg-white/10">
+                        <LogIn className="w-4 h-4" />
                       </button>
                     </div>
                   </div>

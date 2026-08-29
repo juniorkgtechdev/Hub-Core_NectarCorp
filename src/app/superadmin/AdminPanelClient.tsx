@@ -192,12 +192,18 @@ export default function AdminPanelClient({
       const { impersonateToken } = await res.json();
 
       // Forçar o login via NextAuth Credentials com o token e redirecionar para a URL correta
-      const callbackUrl = u.tenant?.slug ? `/${u.tenant.slug}/dashboard` : "/";
+      const callbackUrl = u.tenant?.slug ? `${window.location.origin}/${u.tenant.slug}/dashboard` : `${window.location.origin}/`;
       
-      await signIn("credentials", {
+      const resAuth = await signIn("credentials", {
         impersonateToken,
-        callbackUrl,
+        redirect: false,
       });
+
+      if (resAuth?.ok) {
+        window.location.href = callbackUrl;
+      } else {
+        alert("Erro ao realizar login impersonate.");
+      }
 
     } catch (error) {
       alert("Erro ao tentar acessar como usuário.");

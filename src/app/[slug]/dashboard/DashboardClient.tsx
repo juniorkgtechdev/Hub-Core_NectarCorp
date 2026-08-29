@@ -202,10 +202,11 @@ export default function DashboardClient({ tenant }: { tenant: Tenant }) {
       }`}>
         <div className="flex items-center gap-3">
           {tenant.logoUrl ? (
-            <div className={`relative w-8 h-8 rounded-md overflow-hidden p-0.5 border ${
+            <div className={`relative w-8 h-8 rounded-md overflow-hidden p-0.5 border flex items-center justify-center ${
               isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'
             }`}>
-              <Image src={tenant.logoUrl} alt="Logo" fill className="object-contain" />
+              {/* @next/next/no-img-element */}
+              <img src={tenant.logoUrl.startsWith('/uploads/') ? `/api${tenant.logoUrl}` : tenant.logoUrl} alt="Logo" className="w-full h-full object-contain" />
             </div>
           ) : (
             <div className="w-8 h-8 bg-indigo-500/20 border border-indigo-500/30 rounded-lg flex items-center justify-center text-indigo-500 font-bold">
@@ -242,7 +243,10 @@ export default function DashboardClient({ tenant }: { tenant: Tenant }) {
               <Settings className="w-4 h-4" /> Admin Global
             </Link>
           )}
-          <button onClick={() => signOut()} className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 ml-2 border-l pl-4 border-slate-200 dark:border-white/10">
+          <button onClick={async () => {
+            await signOut({ redirect: false });
+            window.location.href = "/";
+          }} className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 ml-2 border-l pl-4 border-slate-200 dark:border-white/10">
             <LogOut className="w-4 h-4" /> Sair
           </button>
         </div>

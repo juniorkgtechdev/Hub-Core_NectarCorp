@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Edit2, Shield, Plus, Trash2, Building, Users, LogIn } from "lucide-react";
 
-type Tenant = { id: string; name: string };
+type Tenant = { id: string; name: string; slug: string };
 type User = { id: string; name: string | null; email: string; role: string; tenantId: string | null; tenant?: Tenant | null };
 
 export default function AdminPanelClient({

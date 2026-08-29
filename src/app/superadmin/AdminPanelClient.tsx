@@ -18,6 +18,7 @@ export default function AdminPanelClient({
   const router = useRouter();
   
   // Tenant Form
+  const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
   const [tenantName, setTenantName] = useState("");
   const [tenantSlug, setTenantSlug] = useState("");
   const [tenantLogo, setTenantLogo] = useState<File | null>(null);
@@ -38,13 +39,13 @@ export default function AdminPanelClient({
     setTenantSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
   };
 
-  const handleCreateTenant = async (e: React.FormEvent) => {
+  const handleCreateOrUpdateTenant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tenantName || !tenantSlug) return;
 
     setIsSubmittingTenant(true);
     try {
-      let logoUrl = null;
+      let logoUrl = undefined;
 
       if (tenantLogo) {
         const formData = new FormData();
@@ -65,26 +66,46 @@ export default function AdminPanelClient({
         }
       }
 
+      const method = editingTenantId ? "PUT" : "POST";
+      const payload: any = { name: tenantName, slug: tenantSlug };
+      if (editingTenantId) payload.id = editingTenantId;
+      if (logoUrl !== undefined) payload.logoUrl = logoUrl;
+
       const res = await fetch("/api/admin/tenant", {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: tenantName, slug: tenantSlug, logoUrl }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
+        setEditingTenantId(null);
         setTenantName("");
         setTenantSlug("");
         setTenantLogo(null);
         router.refresh();
       } else {
         const data = await res.json();
-        alert(data.error || "Erro ao criar empresa.");
+        alert(data.error || "Erro ao salvar empresa.");
       }
     } catch (error) {
-      alert("Erro ao criar empresa.");
+      alert("Erro ao salvar empresa.");
     } finally {
       setIsSubmittingTenant(false);
     }
+  };
+
+  const handleEditTenant = (t: Tenant) => {
+    setEditingTenantId(t.id);
+    setTenantName(t.name);
+    setTenantSlug(t.slug);
+    setTenantLogo(null);
+  };
+
+  const cancelEditTenant = () => {
+    setEditingTenantId(null);
+    setTenantName("");
+    setTenantSlug("");
+    setTenantLogo(null);
   };
 
   const handleCreateOrUpdateUser = async (e: React.FormEvent) => {
@@ -189,12 +210,19 @@ export default function AdminPanelClient({
       <div className="space-y-8">
         
         {/* Formulário de Empresa */}
-        <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10">
+        <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10 relative">
+          {editingTenantId && (
+            <div className="absolute top-6 right-6">
+              <button onClick={cancelEditTenant} className="text-xs text-slate-400 hover:text-white transition-colors">
+                Cancelar
+              </button>
+            </div>
+          )}
           <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
             <Building className="w-5 h-5 text-[#D9AE55]" />
-            Adicionar Empresa
+            {editingTenantId ? "Editar Empresa" : "Adicionar Empresa"}
           </h2>
-          <form onSubmit={handleCreateTenant} className="space-y-4">
+          <form onSubmit={handleCreateOrUpdateTenant} className="space-y-4">
             <div>
               <label className="block text-xs text-slate-400 mb-1">Nome da Empresa</label>
               <input
@@ -232,9 +260,10 @@ export default function AdminPanelClient({
             <button
               type="submit"
               disabled={isSubmittingTenant}
-              className="w-full bg-[#D9AE55]/10 hover:bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30 font-medium py-2.5 px-4 rounded-xl transition-all"
+              className="w-full bg-[#D9AE55]/10 hover:bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30 font-medium py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
             >
-              {isSubmittingTenant ? "Criando..." : "Criar Empresa"}
+              {editingTenantId && !isSubmittingTenant && <Edit2 className="w-4 h-4" />}
+              {isSubmittingTenant ? "Salvando..." : editingTenantId ? "Salvar Alterações" : "Criar Empresa"}
             </button>
           </form>
         </div>
@@ -338,9 +367,14 @@ export default function AdminPanelClient({
           ) : (
             <ul className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
               {initialTenants.map((t) => (
-                <li key={t.id} className="flex justify-between items-center p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors">
+                <li key={t.id} className="flex justify-between items-center p-4 rounded-xl border border-white/5 bg-white/5 group hover:bg-white/10 transition-colors">
                   <span className="font-medium text-slate-200">{t.name}</span>
-                  <span className="text-xs text-slate-500 font-mono bg-black/50 px-2 py-1 rounded">{t.id.slice(-6)}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500 font-mono bg-black/50 px-2 py-1 rounded">{t.id.slice(-6)}</span>
+                    <button onClick={() => handleEditTenant(t)} title="Editar Empresa" className="transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -365,10 +399,10 @@ export default function AdminPanelClient({
                           'bg-white/10 text-slate-400 border border-white/10'}`}>
                         {u.role}
                       </span>
-                      <button onClick={() => handleEditUser(u)} title="Editar Usuário" className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">
+                      <button onClick={() => handleEditUser(u)} title="Editar Usuário" className="transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleImpersonate(u)} title="Acessar como (Impersonate)" className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-green-400 p-1 rounded-md hover:bg-white/10">
+                      <button onClick={() => handleImpersonate(u)} title="Acessar como (Impersonate)" className="transition-opacity text-slate-400 hover:text-green-400 p-1 rounded-md hover:bg-white/10">
                         <LogIn className="w-4 h-4" />
                       </button>
                     </div>

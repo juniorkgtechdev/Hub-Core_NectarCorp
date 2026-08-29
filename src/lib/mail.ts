@@ -39,6 +39,7 @@ export const sendPasswordResetEmail = async (email: string, token: string, appUr
     console.log(`E-mail de recuperação enviado para ${email}`);
   } catch (error) {
     console.error("Erro ao enviar e-mail de recuperação:", error);
+    throw error;
     // Em ambiente de desenvolvimento (localhost) e sem SMTP, apenas mostramos o link no console
     if (domain.includes('localhost')) {
       console.log('----------------------------------------------------')

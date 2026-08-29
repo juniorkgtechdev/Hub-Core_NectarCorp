@@ -26,8 +26,8 @@ export async function POST(req: Request) {
 
     const resetToken = await generatePasswordResetToken(email);
     
-    // Dispara o e-mail em background para não atrasar a resposta da API (que estava levando mais de 1 minuto no SMTP)
-    sendPasswordResetEmail(email, resetToken.token, origin).catch(console.error);
+    // Dispara o e-mail (agora com await para aguardar o envio)
+    await sendPasswordResetEmail(email, resetToken.token, origin);
 
     return NextResponse.json({ message: "Se o e-mail existir, um link de recuperação foi enviado." });
   } catch (error: any) {

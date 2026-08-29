@@ -1,13 +1,14 @@
 {
   "name": "sistema-contratos",
-  "version": "0.1.0",
+  "version": "1.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma skills sync || exit 0",
+    "release": "node scripts/deploy.js"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

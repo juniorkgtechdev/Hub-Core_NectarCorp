@@ -36,6 +36,11 @@ COPY --from=builder /app/public ./public
 # Copia automaticamente o build gerado em modo standalone
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copia o schema do prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+
+# Instalar Prisma para rodar o db push ao iniciar o container
+RUN npm install prisma @prisma/client
 
 USER nextjs
 
@@ -43,4 +48,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# O comando inicial roda o push do banco e depois o servidor
+CMD npx prisma db push --accept-data-loss && node server.js

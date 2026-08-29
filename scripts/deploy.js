@@ -17,11 +17,15 @@ function askQuestion(query) {
   return new Promise(resolve => rl.question(query, resolve));
 }
 
-function runCommand(command) {
+function runCommand(command, ignoreError = false) {
   console.log(`\n> Executando: ${command}`);
   try {
     execSync(command, { stdio: 'inherit', cwd: process.cwd() });
   } catch (error) {
+    if (ignoreError) {
+      console.log(`\n⚠️ Aviso: Comando falhou (provavelmente nada para commitar), continuando...`);
+      return;
+    }
     console.error(`\nErro ao executar comando: ${command}`);
     console.error('Processo abortado.');
     process.exit(1);
@@ -104,7 +108,7 @@ async function main() {
   // 4. Executar os comandos
   runCommand('git status');
   runCommand('git add .');
-  runCommand(`git commit -m "${commitMessage}"`);
+  runCommand(`git commit -m "${commitMessage}"`, true);
   runCommand(`git tag -a v${newVersion} -m "Hub Core Nectar Corp ${newVersion}"`);
   
   // Pegar a branch atual para o push

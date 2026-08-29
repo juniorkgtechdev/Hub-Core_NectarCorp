@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       (a.nome || "").localeCompare(b.nome || "")
     );
 
-    return new Promise((resolve, reject) => {
+    return new Promise<NextResponse>((resolve, reject) => {
       const doc = new PDFDocument({ margin: 50 });
       const chunks: Buffer[] = [];
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       doc.on("end", () => {
         const result = Buffer.concat(chunks);
         resolve(
-          new NextResponse(result, {
+          new NextResponse(new Uint8Array(result), {
             headers: {
               "Content-Type": "application/pdf",
               "Content-Disposition": `attachment; filename="Boletim.pdf"`,

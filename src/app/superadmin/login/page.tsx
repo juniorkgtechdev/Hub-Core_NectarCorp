@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-export default function LoginPage() {
+export default function SuperAdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ export default function LoginPage() {
       if (res?.error) {
         setError("E-mail ou senha inválidos.");
       } else {
-        router.push("/dashboard");
+        router.push("/superadmin");
         router.refresh();
       }
     } catch (error) {
@@ -38,22 +38,22 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+    <main className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-800">Medprime</h1>
-          <p className="text-slate-500 mt-2">Acesso ao sistema de contratos</p>
+          <h1 className="text-3xl font-bold text-white">Super Admin</h1>
+          <p className="text-slate-400 mt-2">Acesso restrito ao painel de controle</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 border border-red-200 text-sm">
+          <div className="bg-red-500/10 text-red-400 p-4 rounded-lg mb-6 border border-red-500/20 text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            <label className="block text-sm font-semibold text-slate-300 mb-1.5">
               E-mail
             </label>
             <input
@@ -61,13 +61,13 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2.5 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-              placeholder="seu@email.com"
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              placeholder="admin@nectarcorp.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            <label className="block text-sm font-semibold text-slate-300 mb-1.5">
               Senha
             </label>
             <input
@@ -75,7 +75,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2.5 bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               placeholder="••••••••"
             />
           </div>
@@ -83,9 +83,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
           >
-            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "Entrar no Sistema"}
+            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "Acessar Painel"}
           </button>
         </form>
       </div>

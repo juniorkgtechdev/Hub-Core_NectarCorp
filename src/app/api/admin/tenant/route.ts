@@ -8,19 +8,27 @@ export async function POST(req: Request) {
   try {
     const session = await auth();
 
-    // Ideally, check if the user is SUPERADMIN
-    if (!session || !session.user) {
+    if (!session || !session.user || session.user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { name } = await req.json();
+    const { name, slug, logoUrl } = await req.json();
 
-    if (!name) {
-      return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
+    if (!name || !slug) {
+      return NextResponse.json({ error: "Nome e slug são obrigatórios" }, { status: 400 });
+    }
+
+    // Check if slug is unique
+    const existingTenant = await prisma.tenant.findUnique({
+      where: { slug }
+    });
+
+    if (existingTenant) {
+      return NextResponse.json({ error: "Este slug já está em uso" }, { status: 400 });
     }
 
     const tenant = await prisma.tenant.create({
-      data: { name },
+      data: { name, slug, logoUrl },
     });
 
     return NextResponse.json(tenant, { status: 201 });

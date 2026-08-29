@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateContractsPdf } from "@/utils/pdfGenerator";
 import { ExtractedData } from "@/types";
+import JSZip from "jszip";
 
 export async function POST(req: Request) {
   try {
@@ -10,13 +11,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
 
-    const buffer = await generateContractsPdf(dataList);
+    const buffers = await generateContractsPdf(dataList);
 
-    return new NextResponse(new Uint8Array(buffer), {
+    if (buffers.length === 1) {
+      const name = dataList[0].nome ? dataList[0].nome.replace(/\s+/g, '_') : "Contrato";
+      return new NextResponse(new Uint8Array(buffers[0]), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="Contrato_${name}.pdf"`,
+        },
+      });
+    }
+
+    const zip = new JSZip();
+    for (let i = 0; i < buffers.length; i++) {
+      const data = dataList[i];
+      const name = data.nome ? data.nome.replace(/\s+/g, '_') : `Contrato_${i+1}`;
+      zip.file(`Contrato_${name}.pdf`, buffers[i]);
+    }
+
+    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+
+    return new NextResponse(new Uint8Array(zipBuffer), {
       status: 200,
       headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="Contratos.pdf"`,
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="Contratos.zip"`,
       },
     });
   } catch (error: any) {

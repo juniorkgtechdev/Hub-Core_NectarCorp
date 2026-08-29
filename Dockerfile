@@ -2,7 +2,7 @@ FROM node:20-alpine AS base
 
 # Dependências apenas quando necessário
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -12,6 +12,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN npx prisma generate
 RUN npm run build
 
 # Imagem de produção
@@ -20,6 +21,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 # Next.js standalone mode precisa dessa variável para rodar com o server customizado
 ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN apk add --no-cache openssl
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

@@ -21,6 +21,7 @@ export const {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
+          include: { tenant: true },
         });
 
         if (!user) return null;
@@ -31,12 +32,18 @@ export const {
         );
 
         if (passwordsMatch) {
+          // Se não for super admin e não tiver empresa, não deixa logar
+          if (user.role !== 'SUPERADMIN' && !user.tenant) {
+            throw new Error("Usuário não possui uma empresa vinculada.");
+          }
+
           return {
             id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
             tenantId: user.tenantId,
+            tenantSlug: user.tenant?.slug || null,
           };
         }
         return null;
@@ -48,6 +55,7 @@ export const {
       if (user) {
         token.role = user.role;
         token.tenantId = user.tenantId;
+        token.tenantSlug = (user as any).tenantSlug;
       }
       return token;
     },
@@ -55,12 +63,13 @@ export const {
       if (token && session.user) {
         session.user.role = token.role as string;
         session.user.tenantId = token.tenantId as string | null;
+        (session.user as any).tenantSlug = token.tenantSlug as string | null;
       }
       return session;
     },
   },
   pages: {
-    signIn: "/login",
+    signIn: "/",
   },
   session: { strategy: "jwt" },
 });

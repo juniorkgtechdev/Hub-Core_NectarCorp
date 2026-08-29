@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { auth } from "@/auth";
 import bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
+import { generatePasswordResetToken } from "@/lib/tokens";
+import { sendPasswordResetEmail } from "@/lib/mail";
 
 const prisma = new PrismaClient();
 
@@ -16,8 +19,8 @@ export async function POST(req: Request) {
 
     const { name, email, password, role, tenantId } = await req.json();
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email e senha são obrigatórios" }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: "Email é obrigatório" }, { status: 400 });
     }
 
     // Check if user already exists
@@ -29,7 +32,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Usuário com este email já existe" }, { status: 400 });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Gera uma senha aleatória caso não seja fornecida
+    const finalPassword = password || uuidv4();
+    const passwordHash = await bcrypt.hash(finalPassword, 10);
 
     const user = await prisma.user.create({
       data: {
@@ -41,6 +46,12 @@ export async function POST(req: Request) {
       },
     });
 
+    if (!password) {
+      const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_APP_URL || undefined;
+      const resetToken = await generatePasswordResetToken(email);
+      sendPasswordResetEmail(email, resetToken.token, origin).catch(console.error);
+    }
+
     // Don't return password hash
     const { passwordHash: _, ...userWithoutPassword } = user;
 
@@ -48,5 +59,51 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Erro ao criar usuário:", error);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const session = await auth();
+    if (!session || !session.user || session.user.role !== 'SUPERADMIN') {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    const { id, name, email, password, role, tenantId } = await req.json();
+
+    if (!id || !email) {
+      return NextResponse.json({ error: 'ID e Email são obrigatórios' }, { status: 400 });
+    }
+
+    const userToEdit = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!userToEdit) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    }
+
+    const updateData: any = { 
+      name, 
+      email,
+      role: role || userToEdit.role,
+      tenantId: tenantId === "" ? null : (tenantId || userToEdit.tenantId)
+    };
+
+    if (password && password.trim() !== '') {
+      updateData.passwordHash = await bcrypt.hash(password, 10);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData,
+    });
+
+    const { passwordHash: _, ...userWithoutPassword } = updatedUser;
+
+    return NextResponse.json(userWithoutPassword);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return NextResponse.json({ error: 'Erro ao atualizar usuário' }, { status: 500 });
   }
 }

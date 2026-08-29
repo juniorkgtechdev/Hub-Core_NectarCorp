@@ -1,0 +1,357 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Edit2, Shield, Plus, Trash2, Building, Users } from "lucide-react";
+
+type Tenant = { id: string; name: string };
+type User = { id: string; name: string | null; email: string; role: string; tenantId: string | null; tenant?: Tenant | null };
+
+export default function AdminPanelClient({
+  initialTenants,
+  initialUsers,
+}: {
+  initialTenants: Tenant[];
+  initialUsers: User[];
+}) {
+  const router = useRouter();
+  
+  // Tenant Form
+  const [tenantName, setTenantName] = useState("");
+  const [tenantSlug, setTenantSlug] = useState("");
+  const [tenantLogo, setTenantLogo] = useState<File | null>(null);
+  const [isSubmittingTenant, setIsSubmittingTenant] = useState(false);
+
+  // User Form
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userPassword, setUserPassword] = useState("");
+  const [userRole, setUserRole] = useState("USER");
+  const [userTenant, setUserTenant] = useState("");
+  const [isSubmittingUser, setIsSubmittingUser] = useState(false);
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setTenantName(val);
+    setTenantSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+  };
+
+  const handleCreateTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantName || !tenantSlug) return;
+
+    setIsSubmittingTenant(true);
+    try {
+      let logoUrl = null;
+
+      if (tenantLogo) {
+        const formData = new FormData();
+        formData.append("file", tenantLogo);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const data = await uploadRes.json();
+          logoUrl = data.url;
+        } else {
+          alert("Falha ao fazer upload da logomarca.");
+          setIsSubmittingTenant(false);
+          return;
+        }
+      }
+
+      const res = await fetch("/api/admin/tenant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: tenantName, slug: tenantSlug, logoUrl }),
+      });
+
+      if (res.ok) {
+        setTenantName("");
+        setTenantSlug("");
+        setTenantLogo(null);
+        router.refresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Erro ao criar empresa.");
+      }
+    } catch (error) {
+      alert("Erro ao criar empresa.");
+    } finally {
+      setIsSubmittingTenant(false);
+    }
+  };
+
+  const handleCreateOrUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userEmail) return;
+
+    setIsSubmittingUser(true);
+    try {
+      const url = "/api/admin/user";
+      const method = editingUserId ? "PUT" : "POST";
+      
+      const payload: any = {
+        name: userName,
+        email: userEmail,
+        role: userRole,
+        tenantId: userTenant || null,
+      };
+
+      if (editingUserId) {
+        payload.id = editingUserId;
+      }
+      
+      if (userPassword) {
+        payload.password = userPassword;
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setEditingUserId(null);
+        setUserName("");
+        setUserEmail("");
+        setUserPassword("");
+        setUserRole("USER");
+        setUserTenant("");
+        router.refresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Erro ao salvar usuário.");
+      }
+    } catch (error) {
+      alert("Erro ao salvar usuário.");
+    } finally {
+      setIsSubmittingUser(false);
+    }
+  };
+
+  const handleEditUser = (u: User) => {
+    setEditingUserId(u.id);
+    setUserName(u.name || "");
+    setUserEmail(u.email);
+    setUserRole(u.role);
+    setUserTenant(u.tenantId || "");
+    setUserPassword("");
+  };
+
+  const cancelEdit = () => {
+    setEditingUserId(null);
+    setUserName("");
+    setUserEmail("");
+    setUserRole("USER");
+    setUserTenant("");
+    setUserPassword("");
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
+      {/* Coluna 1: Formulários */}
+      <div className="space-y-8">
+        
+        {/* Formulário de Empresa */}
+        <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <Building className="w-5 h-5 text-[#D9AE55]" />
+            Adicionar Empresa
+          </h2>
+          <form onSubmit={handleCreateTenant} className="space-y-4">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Nome da Empresa</label>
+              <input
+                type="text"
+                required
+                value={tenantName}
+                onChange={handleNameChange}
+                className="w-full rounded-xl bg-black/50 border border-white/10 text-white px-4 py-2 focus:border-[#D9AE55] outline-none transition-colors"
+                placeholder="Ex: MedPrime Matriz"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Slug (URL)</label>
+              <div className="flex items-center">
+                <span className="text-sm text-slate-500 bg-white/5 border border-r-0 border-white/10 rounded-l-xl px-3 py-2">/</span>
+                <input
+                  type="text"
+                  required
+                  value={tenantSlug}
+                  onChange={(e) => setTenantSlug(e.target.value)}
+                  className="w-full rounded-r-xl bg-black/50 border border-white/10 text-white px-4 py-2 focus:border-[#D9AE55] outline-none transition-colors"
+                  placeholder="medprimematriz"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Logomarca (PNG/JPG)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setTenantLogo(e.target.files ? e.target.files[0] : null)}
+                className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20 transition-colors"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmittingTenant}
+              className="w-full bg-[#D9AE55]/10 hover:bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30 font-medium py-2.5 px-4 rounded-xl transition-all"
+            >
+              {isSubmittingTenant ? "Criando..." : "Criar Empresa"}
+            </button>
+          </form>
+        </div>
+
+        {/* Formulário de Usuário */}
+        <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10 relative">
+          {editingUserId && (
+            <div className="absolute top-6 right-6">
+              <button onClick={cancelEdit} className="text-xs text-slate-400 hover:text-white transition-colors">
+                Cancelar
+              </button>
+            </div>
+          )}
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <Users className="w-5 h-5 text-[#D9AE55]" />
+            {editingUserId ? "Editar Usuário" : "Adicionar Usuário"}
+          </h2>
+          <form onSubmit={handleCreateOrUpdateUser} className="space-y-4">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Nome Completo</label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                className="w-full rounded-xl bg-black/50 border border-white/10 text-white px-4 py-2 focus:border-[#D9AE55] outline-none transition-colors"
+                placeholder="Ex: João da Silva"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">E-mail</label>
+              <input
+                type="email"
+                required
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+                className="w-full rounded-xl bg-black/50 border border-white/10 text-white px-4 py-2 focus:border-[#D9AE55] outline-none transition-colors"
+                placeholder="joao@exemplo.com"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">{editingUserId ? "Nova Senha (deixe em branco para não alterar)" : "Senha (Opcional - E-mail de convite será enviado)"}</label>
+              <input
+                type="password"
+                required={false}
+                value={userPassword}
+                onChange={(e) => setUserPassword(e.target.value)}
+                className="w-full rounded-xl bg-black/50 border border-white/10 text-white px-4 py-2 focus:border-[#D9AE55] outline-none transition-colors placeholder:text-slate-600"
+                placeholder={editingUserId ? "********" : "Deixe em branco para auto-gerar"}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Nível de Acesso</label>
+                <select
+                  value={userRole}
+                  onChange={(e) => setUserRole(e.target.value)}
+                  className="w-full rounded-xl bg-black/50 border border-white/10 text-white px-4 py-2 focus:border-[#D9AE55] outline-none transition-colors [&>option]:bg-[#0f0f11]"
+                >
+                  <option value="USER">Usuário Comum</option>
+                  <option value="ADMIN">Administrador</option>
+                  <option value="SUPERADMIN">Super Admin</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Vincular Empresa</label>
+                <select
+                  value={userTenant}
+                  onChange={(e) => setUserTenant(e.target.value)}
+                  className="w-full rounded-xl bg-black/50 border border-white/10 text-white px-4 py-2 focus:border-[#D9AE55] outline-none transition-colors [&>option]:bg-[#0f0f11]"
+                >
+                  <option value="">-- Nenhuma --</option>
+                  {initialTenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmittingUser}
+              className="w-full bg-[#D9AE55]/10 hover:bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30 font-medium py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              {editingUserId && !isSubmittingUser && <Edit2 className="w-4 h-4" />}
+              {isSubmittingUser ? "Salvando..." : editingUserId ? "Salvar Alterações" : "Criar Usuário"}
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+      {/* Coluna 2: Listas */}
+      <div className="space-y-8">
+        
+        {/* Lista de Empresas */}
+        <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10">
+          <h2 className="text-xl font-bold text-white mb-6">Empresas Cadastradas</h2>
+          {initialTenants.length === 0 ? (
+            <p className="text-slate-500 text-sm">Nenhuma empresa encontrada.</p>
+          ) : (
+            <ul className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {initialTenants.map((t) => (
+                <li key={t.id} className="flex justify-between items-center p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors">
+                  <span className="font-medium text-slate-200">{t.name}</span>
+                  <span className="text-xs text-slate-500 font-mono bg-black/50 px-2 py-1 rounded">{t.id.slice(-6)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Lista de Usuários */}
+        <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10">
+          <h2 className="text-xl font-bold text-white mb-6">Usuários Cadastrados</h2>
+          {initialUsers.length === 0 ? (
+            <p className="text-slate-500 text-sm">Nenhum usuário encontrado.</p>
+          ) : (
+            <ul className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              {initialUsers.map((u) => (
+                <li key={u.id} className="p-4 rounded-xl border border-white/5 bg-white/5 flex flex-col space-y-1 group hover:bg-white/10 transition-colors">
+                  <div className="flex justify-between items-start gap-4">
+                    <span className="font-bold text-slate-200 truncate">{u.name || "Sem nome"}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider
+                        ${u.role === 'SUPERADMIN' ? 'bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30' : 
+                          u.role === 'ADMIN' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 
+                          'bg-white/10 text-slate-400 border border-white/10'}`}>
+                        {u.role}
+                      </span>
+                      <button onClick={() => handleEditUser(u)} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <span className="text-sm text-slate-400">{u.email}</span>
+                  <div className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    {u.tenant ? u.tenant.name : "Sem vínculo"}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}

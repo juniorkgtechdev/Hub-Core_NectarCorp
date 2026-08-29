@@ -3,52 +3,42 @@ import fs from "fs";
 import path from "path";
 import { ExtractedData } from "@/types";
 
-export function generateContractsPdf(dataList: ExtractedData[]): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 50 });
-      const buffers: Buffer[] = [];
-      
-      doc.on("data", buffers.push.bind(buffers));
-      doc.on("end", () => {
-        resolve(Buffer.concat(buffers));
-      });
+export async function generateContractsPdf(dataList: ExtractedData[]): Promise<Buffer[]> {
+  const logoPath = path.join(process.cwd(), "public", "logo.png");
 
-      const logoPath = path.join(process.cwd(), "public", "logo.png");
-
-      dataList.forEach((data, index) => {
-        if (index > 0) {
-          doc.addPage();
-        }
+  const generateSinglePdf = (data: ExtractedData): Promise<Buffer> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 50 });
+        const buffers: Buffer[] = [];
+        
+        doc.on("data", buffers.push.bind(buffers));
+        doc.on("end", () => resolve(Buffer.concat(buffers)));
 
         if (fs.existsSync(logoPath)) {
           const startY = doc.y;
           
-          // Logo on left
           doc.image(logoPath, doc.page.margins.left, startY, {
             width: 150
           });
 
-          // Info on right
           const rightWidth = 250;
           const rightX = doc.page.width - doc.page.margins.right - rightWidth;
           const lineY = startY + 15;
           
           doc.lineWidth(1);
-          doc.strokeColor("#D9534F"); // Red line
+          doc.strokeColor("#D9534F");
           doc.moveTo(rightX, lineY).lineTo(rightX + rightWidth, lineY).stroke();
           
           doc.fillColor("black");
           doc.font("Helvetica-Bold").fontSize(10).text("MEDPRIME CLÍNICA GESTÃO E SAÚDE S.A", rightX, lineY + 6, { width: rightWidth, align: "right" });
           doc.font("Helvetica").fontSize(9).text("CNPJ. 23.481.981/0001-31", rightX, doc.y + 2, { width: rightWidth, align: "right" });
 
-          // Move cursor down past the header
           doc.y = Math.max(doc.y, startY + 60);
           doc.x = doc.page.margins.left;
           doc.moveDown(2);
         }
 
-        // Header
         doc.font("Helvetica-Bold").fontSize(14).text(
           "CONTRATO PARTICULAR DE PRESTAÇÃO DE SERVIÇOS TÉCNICOS POR MEIO DE ASSOCIAÇÃO", 
           doc.page.margins.left, 
@@ -57,7 +47,6 @@ export function generateContractsPdf(dataList: ExtractedData[]): Promise<Buffer>
         );
         doc.moveDown(1.5);
 
-        // Parties
         doc.font("Helvetica").fontSize(11).text(
           "De um lado MEDPRIME CLÍNICA GESTÃO E SAÚDE S/A, pessoa jurídica de direito privado, regularmente inscrita no CNPJ/MF sob o nº 23.481.981/0001-31, com sede na Rua Cajubi, nº 23, Bairro Santa Felicidade, CEP 82.015-130, em Curitiba/PR, neste ato representada nos termos do seu estatuto social por seu Diretor Presidente, Sr. LUÍS SILVA DOS SANTOS, brasileiro, empresário, portador do RG n° 6.159.215-6 PR e inscrito no CPF/MF sob o nº 922.284.109-34, de ora em diante denominada apenas MEDPRIME e de outro lado ", 
           doc.page.margins.left,
@@ -65,10 +54,9 @@ export function generateContractsPdf(dataList: ExtractedData[]): Promise<Buffer>
           { continued: true, align: "justify", width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
         );
         doc.font("Helvetica-Bold").text(`${data.nome ? data.nome.toUpperCase() : ""}`, { continued: true });
-        doc.font("Helvetica").text(`, ${data.nacionalidade ? data.nacionalidade.toLowerCase() : ""}, ${data.estadoCivil ? data.estadoCivil.toLowerCase() : ""}, ${data.profissao ? data.profissao.toLowerCase() : ""}, regularmente inscrito no CPF sob o nº ${data.cpf}, residente e domiciliado(a) na ${data.endereco}, CEP: ${data.cep}, na cidade de ${data.cidade}/${data.estado}, de ora em diante denominado apenas ASSOCIADO.`, { align: "justify" });
+        doc.font("Helvetica").text(`, ${data.nacionalidade ? data.nacionalidade.toLowerCase() : ""}, ${data.estadoCivil ? data.estadoCivil.toLowerCase() : ""}, ${data.profissao ? data.profissao.toLowerCase() : ""}, regularmente inscrito no CPF sob o nº ${data.cpf || "_________"}, residente e domiciliado(a) na ${data.endereco || "_________"}, CEP: ${data.cep || "_________"}, na cidade de ${data.cidade || "_________"}/${data.estado || "_________"}, de ora em diante denominado apenas ASSOCIADO.`, { align: "justify" });
         doc.moveDown(0.5);
 
-        // Considering
         doc.font("Helvetica-Bold").text("Considerando que:");
         doc.moveDown(0.2);
         doc.font("Helvetica").text("(i) A MEDPRIME é empresa especializada que atua com habitualidade no desenvolvimento de atividades de atendimento hospitalar; atividade de atendimento em pronto-socorro e unidades hospitalares para atendimento a urgências, serviços de remoção de pacientes, exceto os serviços móveis de atendimento a urgências; atividade médica ambulatorial com recursos para realização de procedimentos cirúrgicos; atividade médica ambulatorial com recursos para realização de exames complementares; atividade médica ambulatorial restrita a consultas; e atividades de apoio à gestão de saúde;", { align: "justify" });
@@ -78,7 +66,6 @@ export function generateContractsPdf(dataList: ExtractedData[]): Promise<Buffer>
         doc.text("(iii) A MEDPRIME e o ASSOCIADO trocaram diversos contatos com o fito de regulamentar os termos do supramencionado instrumento de prestação de serviços técnicos, ora denominado CONTRATO, tendo estabelecido de forma conjunta todos os direitos, obrigações e prazos ora descritos no presente contrato. É que vem a MEDPRIME e o ASSOCIADO, considerando que há efetivo interesse – livre de consentimento e sem qualquer embaraço – das partes em mutuamente formalizar o presente instrumento, pelo que resolvem de comum acordo celebrar o CONTRATO nos termos que segue em adiante.", { align: "justify" });
         doc.moveDown(1);
 
-        // Clauses
         const addClause = (title: string, text: string) => {
           doc.font("Helvetica-Bold").text(title);
           doc.moveDown(0.2);
@@ -104,7 +91,6 @@ export function generateContractsPdf(dataList: ExtractedData[]): Promise<Buffer>
         doc.text(`Curitiba, ${new Date().toLocaleDateString("pt-BR")}.`, { align: "right" });
         doc.moveDown(2);
 
-        // Signatures
         doc.text("______________________________________________________", { align: "center" });
         doc.font("Helvetica-Bold").text("MEDPRIME CLÍNICA GESTÃO E SAÚDE S/A", { align: "center" });
         doc.moveDown(2);
@@ -116,16 +102,17 @@ export function generateContractsPdf(dataList: ExtractedData[]): Promise<Buffer>
         doc.font("Helvetica-Bold").text("TESTEMUNHAS:");
         doc.moveDown(2);
         
-        // We can use columns for the witnesses
         doc.font("Helvetica").text("__________________________                    __________________________");
         doc.text("Nome:                                                         Nome:");
         doc.text("RG:                                                             RG:");
         doc.text("CPF:                                                            CPF:");
-      });
 
-      doc.end();
-    } catch (e) {
-      reject(e);
-    }
-  });
+        doc.end();
+      } catch (e) {
+        reject(e);
+      }
+    });
+  };
+
+  return Promise.all(dataList.map(generateSinglePdf));
 }

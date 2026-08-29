@@ -109,7 +109,7 @@ async function main() {
   runCommand('git status');
   runCommand('git add .');
   runCommand(`git commit -m "${commitMessage}"`, true);
-  runCommand(`git tag -a v${newVersion} -m "Hub Core Nectar Corp ${newVersion}"`);
+  runCommand(`git tag -a v${newVersion} -m "Hub Core Nectar Corp ${newVersion}"`, true);
   
   // Pegar a branch atual para o push
   let currentBranch = 'main';

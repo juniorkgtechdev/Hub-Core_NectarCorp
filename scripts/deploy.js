@@ -1,14 +1,17 @@
+#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const readline = require('readline');
+
+// (O nome da imagem será perguntado na primeira execução e salvo no package.json)
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-const packageJsonPath = path.join(__dirname, '..', 'package.json');
+const packageJsonPath = path.join(process.cwd(), 'package.json');
 
 function askQuestion(query) {
   return new Promise(resolve => rl.question(query, resolve));
@@ -17,7 +20,7 @@ function askQuestion(query) {
 function runCommand(command) {
   console.log(`\n> Executando: ${command}`);
   try {
-    execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+    execSync(command, { stdio: 'inherit', cwd: process.cwd() });
   } catch (error) {
     console.error(`\nErro ao executar comando: ${command}`);
     console.error('Processo abortado.');
@@ -27,6 +30,23 @@ function runCommand(command) {
 
 async function main() {
   console.log('=== Sistema de Deploy (Git + Docker) ===\n');
+
+  let packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+
+  // 0. Configurar Imagem do Docker na primeira vez
+  if (!packageJson.nectarDeploy || !packageJson.nectarDeploy.dockerImage) {
+    console.log('⚠️ Configuração do Docker não encontrada para este projeto.');
+    const username = (await askQuestion('Digite seu Username do Docker Hub (ex: 29172013): ')).trim();
+    const projectName = (await askQuestion('Digite o nome do projeto/imagem (ex: hub-core): ')).trim();
+    
+    if (!packageJson.nectarDeploy) packageJson.nectarDeploy = {};
+    packageJson.nectarDeploy.dockerImage = `${username}/${projectName}`;
+    
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+    console.log(`\n✅ Configuração salva no package.json! Imagem configurada como: ${packageJson.nectarDeploy.dockerImage}\n`);
+  }
+  
+  const DOCKER_IMAGE_NAME = packageJson.nectarDeploy.dockerImage;
 
   // 1. Perguntar o tipo de commit
   let typePrefix = '';
@@ -51,7 +71,8 @@ async function main() {
   console.log(`\nMensagem do commit será: "${commitMessage}"`);
 
   // 3. Atualizar a versão
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  // (Lemos novamente caso algo tenha mudado, ou apenas usamos o carregado)
+  packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   const currentVersion = packageJson.version || '1.0.0';
   let [major, minor, patch] = currentVersion.split('.').map(Number);
 
@@ -89,7 +110,7 @@ async function main() {
   // Pegar a branch atual para o push
   let currentBranch = 'main';
   try {
-    currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', cwd: path.join(__dirname, '..') }).trim();
+    currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', cwd: process.cwd() }).trim();
   } catch(e) {}
 
   runCommand(`git push origin ${currentBranch}`);
@@ -111,12 +132,12 @@ async function main() {
   }
 
   // 6. Build e Push do Docker
-  runCommand(`docker build -t 29172013/hub-core:${newVersion} .`);
-  runCommand(`docker push 29172013/hub-core:${newVersion}`);
+  runCommand(`docker build -t ${DOCKER_IMAGE_NAME}:${newVersion} .`);
+  runCommand(`docker push ${DOCKER_IMAGE_NAME}:${newVersion}`);
 
   // Se desejar atualizar a tag latest também:
-  // runCommand(`docker tag 29172013/hub-core:${newVersion} 29172013/hub-core:latest`);
-  // runCommand(`docker push 29172013/hub-core:latest`);
+  // runCommand(`docker tag ${DOCKER_IMAGE_NAME}:${newVersion} ${DOCKER_IMAGE_NAME}:latest`);
+  // runCommand(`docker push ${DOCKER_IMAGE_NAME}:latest`);
 
   console.log(`\n✅ Deploy da versão v${newVersion} concluído com sucesso!`);
 }

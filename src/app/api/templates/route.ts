@@ -9,11 +9,6 @@ const prisma = new PrismaClient();
 
 export async function GET(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const tenantId = searchParams.get("tenantId");
 
@@ -35,18 +30,13 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const tenantId = formData.get("tenantId") as string;
     const name = formData.get("name") as string;
+    const tenantId = formData.get("tenantId") as string;
 
-    if (!file || !tenantId || !name) {
-      return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
+    if (!file || !name || !tenantId) {
+      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

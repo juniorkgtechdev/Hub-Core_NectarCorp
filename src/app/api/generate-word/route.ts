@@ -15,14 +15,9 @@ const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
     const body = await req.json();
     const dataList: ExtractedData[] = body.dataList || body; // Suporta formato antigo ou novo
-    const tenantId = body.tenantId || session.user.tenantId;
+    const tenantId = body.tenantId;
     const templateId = body.templateId;
 
     if (!dataList || !Array.isArray(dataList) || dataList.length === 0) {

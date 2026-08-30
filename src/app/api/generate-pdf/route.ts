@@ -5,7 +5,8 @@ import JSZip from "jszip";
 
 export async function POST(req: Request) {
   try {
-    const dataList: ExtractedData[] = await req.json();
+    const body = await req.json();
+    const dataList: ExtractedData[] = body.dataList || body;
 
     if (!dataList || !Array.isArray(dataList) || dataList.length === 0) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });

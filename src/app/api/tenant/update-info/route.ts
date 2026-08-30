@@ -9,11 +9,6 @@ const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
     const formData = await req.formData();
     const tenantId = formData.get("tenantId") as string;
     const razaoSocial = formData.get("razaoSocial") as string;

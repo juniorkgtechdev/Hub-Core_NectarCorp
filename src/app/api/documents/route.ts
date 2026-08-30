@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { auth } from "@/auth";
 
 const prisma = new PrismaClient();
 
 export async function GET(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const tenantId = searchParams.get("tenantId");
 

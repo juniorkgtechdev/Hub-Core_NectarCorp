@@ -41,6 +41,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 # Instalar Prisma para rodar o db push ao iniciar o container
 RUN npm install prisma @prisma/client
+RUN chown -R nextjs:nodejs /app/node_modules
 
 USER nextjs
 

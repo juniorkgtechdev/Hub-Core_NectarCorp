@@ -1,63 +1,105 @@
 import { NextResponse } from "next/server";
-import PDFDocument from "pdfkit";
 import { ExtractedData } from "@/types";
+import JSZip from "jszip";
+import PDFDocument from "pdfkit";
+import { PrismaClient } from "@prisma/client";
+import fs from "fs";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
+
+const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const dataList: ExtractedData[] = body.dataList || body;
+    const tenantId = body.tenantId;
 
     if (!dataList || !Array.isArray(dataList) || dataList.length === 0) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
 
-    // Ordenar em ordem alfabética
-    const sortedList = [...dataList].sort((a, b) => 
-      (a.nome || "").localeCompare(b.nome || "")
-    );
+    const buffers: Buffer[] = await Promise.all(dataList.map(async (data) => {
+      return new Promise<Buffer>((resolve, reject) => {
+        try {
+          const doc = new PDFDocument({ margin: 50 });
+          const pdfBuffers: Buffer[] = [];
+          
+          doc.on("data", pdfBuffers.push.bind(pdfBuffers));
+          doc.on("end", () => resolve(Buffer.concat(pdfBuffers)));
 
-    return new Promise<NextResponse>((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50 });
-      const chunks: Buffer[] = [];
+          // Template simples do Boletim em PDF
+          doc.font("Helvetica-Bold").fontSize(16).text("BOLETIM DE DADOS CADASTRAIS", { align: "center" });
+          doc.moveDown(2);
 
-      doc.on("data", (chunk) => chunks.push(chunk));
-      doc.on("end", () => {
-        const result = Buffer.concat(chunks);
-        resolve(
-          new NextResponse(new Uint8Array(result), {
-            headers: {
-              "Content-Type": "application/pdf",
-              "Content-Disposition": `attachment; filename="Boletim.pdf"`,
-            },
-          })
-        );
+          const entries = Object.entries(data);
+          for (const [key, value] of entries) {
+            doc.font("Helvetica-Bold").fontSize(12).text(`${key.toUpperCase()}:`, { continued: true });
+            doc.font("Helvetica").text(` ${value || "N/A"}`);
+            doc.moveDown(0.5);
+          }
+
+          doc.end();
+        } catch (e) {
+          reject(e);
+        }
       });
-      doc.on("error", reject);
+    }));
 
-      // Título
-      doc.font("Helvetica-Bold").fontSize(16).text("BOLETIM DE DADOS CADASTRAIS", { align: "center" });
-      doc.moveDown(2);
+    // Salva histórico se tiver tenantId
+    if (tenantId) {
+      const docsDir = path.join(process.cwd(), "public", "uploads", "documents");
+      if (!fs.existsSync(docsDir)) {
+        fs.mkdirSync(docsDir, { recursive: true });
+      }
 
-      // Parágrafos
-      doc.font("Helvetica").fontSize(12);
+      for (let i = 0; i < buffers.length; i++) {
+        const data = dataList[i];
+        const name = data.nome ? data.nome.replace(/\s+/g, '_') : `Boletim_${i+1}`;
+        const filename = `${uuidv4()}_Boletim_${name}.pdf`;
+        const filePath = path.join(docsDir, filename);
+        fs.writeFileSync(filePath, buffers[i]);
 
-      sortedList.forEach((data) => {
-        const paragraphText = `${data.nome || ""}, ${data.nacionalidade || ""}, nascido(a) em ${data.dataNascimento || ""}, ${data.profissao || ""}, ${data.estadoCivil || ""}, Portador(a) da carteira profissional ${data.carteiraProfissional || ""}, CPF ${data.cpf || ""}, residente e domiciliado(a) na ${data.endereco || ""}, ${data.cidade || ""}, ${data.estado || ""}, CEP nº ${data.cep || ""}.`;
-        
-        doc.text(paragraphText, {
-          align: "justify",
-          indent: 20
+        await prisma.generatedDocument.create({
+          data: {
+            name: `Boletim_${name}.pdf`,
+            type: "BOLETIM",
+            fileUrl: `/uploads/documents/${filename}`,
+            tenantId,
+          }
         });
-        
-        // Espaço de uma linha em branco
-        doc.moveDown(1);
+      }
+    }
+
+    if (buffers.length === 1) {
+      const name = dataList[0].nome ? dataList[0].nome.replace(/\s+/g, '_') : "Boletim";
+      return new NextResponse(new Uint8Array(buffers[0]), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="Boletim_${name}.pdf"`,
+        },
       });
+    }
 
-      doc.end();
+    const zip = new JSZip();
+    for (let i = 0; i < buffers.length; i++) {
+      const data = dataList[i];
+      const name = data.nome ? data.nome.replace(/\s+/g, '_') : `Boletim_${i+1}`;
+      zip.file(`Boletim_${name}.pdf`, buffers[i]);
+    }
+
+    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+
+    return new NextResponse(new Uint8Array(zipBuffer), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="Boletins.zip"`,
+      },
     });
-
   } catch (error: any) {
     console.error("Erro na geração do Boletim PDF:", error);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Erro interno" }, { status: 500 });
   }
 }

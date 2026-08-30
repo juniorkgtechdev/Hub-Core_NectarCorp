@@ -387,14 +387,23 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
                       <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Os documentos gerados também serão salvos no Histórico.</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                      <button onClick={() => handleGenerate("/api/generate-pdf", "Contratos.zip")} disabled={loadingAction !== null} className={`px-5 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2 disabled:opacity-50 ${isDark ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
-                        {loadingAction === "/api/generate-pdf" ? <Loader2 className="animate-spin w-4 h-4" /> : <FileDown className="w-4 h-4" />} Contratos (PDF ZIP)
+                      {/* BOLETINS */}
+                      <button onClick={() => handleGenerate("/api/generate-boletim-pdf", dataList.length === 1 ? "Boletim.pdf" : "Boletins.zip")} disabled={loadingAction !== null} className={`px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 disabled:opacity-50 text-sm ${isDark ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
+                        {loadingAction === "/api/generate-boletim-pdf" ? <Loader2 className="animate-spin w-4 h-4" /> : <FileDown className="w-4 h-4" />} {dataList.length === 1 ? "Boletim (PDF)" : "Boletins (PDF ZIP)"}
+                      </button>
+                      <button onClick={() => handleGenerate("/api/generate-boletim-word", dataList.length === 1 ? "Boletim.docx" : "Boletins.zip")} disabled={loadingAction !== null} className={`px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 disabled:opacity-50 text-sm ${isDark ? 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
+                        {loadingAction === "/api/generate-boletim-word" ? <Loader2 className="animate-spin w-4 h-4" /> : <Download className="w-4 h-4" />} {dataList.length === 1 ? "Boletim (Word)" : "Boletins (Word ZIP)"}
+                      </button>
+
+                      {/* CONTRATOS */}
+                      <button onClick={() => handleGenerate("/api/generate-pdf", dataList.length === 1 ? "Contrato.pdf" : "Contratos.zip")} disabled={loadingAction !== null} className={`px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 disabled:opacity-50 text-sm ${isDark ? 'bg-[#D9AE55]/10 border border-[#D9AE55]/30 text-[#D9AE55] hover:bg-[#D9AE55]/20' : 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100'}`}>
+                        {loadingAction === "/api/generate-pdf" ? <Loader2 className="animate-spin w-4 h-4" /> : <FileDown className="w-4 h-4" />} {dataList.length === 1 ? "Contrato (PDF)" : "Contratos (PDF ZIP)"}
                       </button>
                       
-                      <button onClick={() => handleGenerate("/api/generate-word", "Contratos.zip")} disabled={loadingAction !== null} className={`relative inline-flex h-11 overflow-hidden rounded-xl p-[1px] focus:outline-none focus:ring-2 focus:ring-[#D9AE55] group/btn disabled:opacity-50`}>
+                      <button onClick={() => handleGenerate("/api/generate-word", dataList.length === 1 ? "Contrato.docx" : "Contratos.zip")} disabled={loadingAction !== null} className={`relative inline-flex h-10 overflow-hidden rounded-xl p-[1px] focus:outline-none focus:ring-2 focus:ring-[#D9AE55] group/btn disabled:opacity-50`}>
                         {isDark && <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,#D9AE55_50%,transparent_100%)]" />}
-                        <span className={`inline-flex h-full w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-5 py-1 text-sm font-medium backdrop-blur-3xl transition-colors ${isDark ? 'bg-black text-white hover:bg-black/70' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
-                          {loadingAction === "/api/generate-word" ? <Loader2 className="animate-spin w-4 h-4" /> : <Download className="w-4 h-4" />} Contratos (Word ZIP)
+                        <span className={`inline-flex h-full w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-1 text-sm font-medium backdrop-blur-3xl transition-colors ${isDark ? 'bg-black text-white hover:bg-black/70' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                          {loadingAction === "/api/generate-word" ? <Loader2 className="animate-spin w-4 h-4" /> : <Download className="w-4 h-4" />} {dataList.length === 1 ? "Contrato (Word)" : "Contratos (Word ZIP)"}
                         </span>
                       </button>
                     </div>

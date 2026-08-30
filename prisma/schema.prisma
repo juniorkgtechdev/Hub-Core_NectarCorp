@@ -10,14 +10,23 @@ datasource db {
 
 // Representa a Clínica / Empresa
 model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  logoUrl   String?
-  users     User[]
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  logoUrl         String?
+  
+  // Dados da empresa para contratos
+  razaoSocial     String?
+  cnpj            String?
+  endereco        String?
+
+  users           User[]
+  templates       ContractTemplate[]
+  documents       GeneratedDocument[]
+
   moduleContracts Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // Representa o Usuário que fará login
@@ -34,6 +43,32 @@ model User {
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+// Modelos de Contrato
+model ContractTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  fileUrl   String   // Caminho para o .docx base
+  
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Histórico de Documentos Gerados
+model GeneratedDocument {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   // "CONTRATO" ou "BOLETIM"
+  fileUrl   String   // Caminho para o PDF ou DOCX final gerado
+  
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
 }
 
 // Representa os tokens de recuperação de senha e convite

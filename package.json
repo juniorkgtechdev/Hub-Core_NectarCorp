@@ -1,6 +1,6 @@
 {
   "name": "sistema-contratos",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
@@ -14,9 +14,11 @@
     "@google/genai": "^2.19.0",
     "@prisma/client": "^6.0.0",
     "@types/pdfkit": "^0.17.6",
+    "@types/pizzip": "^3.0.5",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "docx": "^9.7.1",
+    "docxtemplater": "^3.69.3",
     "jszip": "^3.10.1",
     "lucide-react": "^1.35.0",
     "next": "16.3.3",
@@ -24,6 +26,7 @@
     "nodemailer": "^8.0.11",
     "pdfkit": "^0.20.1",
     "pdfmake": "^0.3.11",
+    "pizzip": "^3.2.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwind-merge": "^3.6.0",

@@ -96,7 +96,7 @@ O sistema implementa arquitetura multi-tenant com isolamento total de dados:
 ```bash
 # 1. Clone o repositório
 git clone https://github.com/nectarcorp/hub-core.git
-cd sistema-contratos
+cd hub-core
 
 # 2. Instale dependências
 npm install

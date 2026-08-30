@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { name, slug, logoUrl } = await req.json();
+    const { name, slug, logoUrl, moduleContracts } = await req.json();
 
     if (!name || !slug) {
       return NextResponse.json({ error: "Nome e slug são obrigatórios" }, { status: 400 });
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     }
 
     const tenant = await prisma.tenant.create({
-      data: { name, slug, logoUrl },
+      data: { name, slug, logoUrl, moduleContracts: moduleContracts ?? true },
     });
 
     return NextResponse.json(tenant, { status: 201 });
@@ -46,7 +46,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { id, name, slug, logoUrl } = await req.json();
+    const { id, name, slug, logoUrl, moduleContracts } = await req.json();
 
     if (!id || !name || !slug) {
       return NextResponse.json({ error: "ID, nome e slug são obrigatórios" }, { status: 400 });
@@ -68,6 +68,9 @@ export async function PUT(req: Request) {
     if (logoUrl !== undefined) {
       // If logoUrl is null, it removes the logo. If it's a string, it updates it.
       dataToUpdate.logoUrl = logoUrl;
+    }
+    if (moduleContracts !== undefined) {
+      dataToUpdate.moduleContracts = moduleContracts;
     }
 
     const tenant = await prisma.tenant.update({

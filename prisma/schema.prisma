@@ -15,6 +15,7 @@ model Tenant {
   slug      String   @unique
   logoUrl   String?
   users     User[]
+  moduleContracts Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

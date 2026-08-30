@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Edit2, Shield, Plus, Trash2, Building, Users, LogIn } from "lucide-react";
 
-type Tenant = { id: string; name: string; slug: string };
+type Tenant = { id: string; name: string; slug: string; logoUrl?: string | null; moduleContracts?: boolean };
 type User = { id: string; name: string | null; email: string; role: string; tenantId: string | null; tenant?: Tenant | null };
 
 export default function AdminPanelClient({
@@ -22,6 +22,7 @@ export default function AdminPanelClient({
   const [tenantName, setTenantName] = useState("");
   const [tenantSlug, setTenantSlug] = useState("");
   const [tenantLogo, setTenantLogo] = useState<File | null>(null);
+  const [tenantModuleContracts, setTenantModuleContracts] = useState(true);
   const [isSubmittingTenant, setIsSubmittingTenant] = useState(false);
 
   // User Form
@@ -67,7 +68,7 @@ export default function AdminPanelClient({
       }
 
       const method = editingTenantId ? "PUT" : "POST";
-      const payload: any = { name: tenantName, slug: tenantSlug };
+      const payload: any = { name: tenantName, slug: tenantSlug, moduleContracts: tenantModuleContracts };
       if (editingTenantId) payload.id = editingTenantId;
       if (logoUrl !== undefined) payload.logoUrl = logoUrl;
 
@@ -99,6 +100,7 @@ export default function AdminPanelClient({
     setTenantName(t.name);
     setTenantSlug(t.slug);
     setTenantLogo(null);
+    setTenantModuleContracts(t.moduleContracts ?? true);
   };
 
   const cancelEditTenant = () => {
@@ -106,6 +108,7 @@ export default function AdminPanelClient({
     setTenantName("");
     setTenantSlug("");
     setTenantLogo(null);
+    setTenantModuleContracts(true);
   };
 
   const handleCreateOrUpdateUser = async (e: React.FormEvent) => {
@@ -263,6 +266,23 @@ export default function AdminPanelClient({
                 className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20 transition-colors"
               />
             </div>
+            
+            <div className="flex items-center gap-3 bg-white/5 p-4 rounded-xl border border-white/10">
+              <input
+                type="checkbox"
+                id="moduleContracts"
+                checked={tenantModuleContracts}
+                onChange={(e) => setTenantModuleContracts(e.target.checked)}
+                className="w-5 h-5 accent-[#D9AE55] rounded border-white/20 bg-black/50 cursor-pointer"
+              />
+              <div>
+                <label htmlFor="moduleContracts" className="block text-sm font-medium text-slate-200 cursor-pointer">
+                  Módulo: Gerador de Contratos
+                </label>
+                <span className="text-xs text-slate-400">Habilita a criação de contratos em lote para esta empresa.</span>
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={isSubmittingTenant}
@@ -374,7 +394,12 @@ export default function AdminPanelClient({
             <ul className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
               {initialTenants.map((t) => (
                 <li key={t.id} className="flex justify-between items-center p-4 rounded-xl border border-white/5 bg-white/5 group hover:bg-white/10 transition-colors">
-                  <span className="font-medium text-slate-200">{t.name}</span>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-slate-200">{t.name}</span>
+                    <div className="flex gap-2 mt-1">
+                      {t.moduleContracts && <span className="text-[10px] bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30 px-1.5 py-0.5 rounded">Contratos</span>}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-500 font-mono bg-black/50 px-2 py-1 rounded">{t.id.slice(-6)}</span>
                     <button onClick={() => handleEditTenant(t)} title="Editar Empresa" className="transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">

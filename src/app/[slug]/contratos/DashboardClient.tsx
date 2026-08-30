@@ -84,11 +84,20 @@ export default function DashboardClient({ tenant }: { tenant: Tenant }) {
         throw new Error(`Falha ao gerar o arquivo`);
       }
 
+      const disposition = res.headers.get("Content-Disposition");
+      let downloadFilename = filename;
+      if (disposition && disposition.includes("filename=")) {
+        const matches = disposition.match(/filename="?([^"]+)"?/);
+        if (matches && matches[1]) {
+          downloadFilename = matches[1];
+        }
+      }
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename;
+      a.download = downloadFilename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -243,6 +252,11 @@ export default function DashboardClient({ tenant }: { tenant: Tenant }) {
               <Settings className="w-4 h-4" /> Admin Global
             </Link>
           )}
+          <Link href={`/${tenant.slug}/dashboard`} className={`text-sm font-medium transition-colors flex items-center gap-1 border-l pl-4 border-slate-200 dark:border-white/10 ${
+            isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600'
+          }`}>
+            Portal
+          </Link>
           <button onClick={async () => {
             await signOut({ redirect: false });
             window.location.href = "/";

@@ -1,10 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import { notFound } from "next/navigation";
-import PortalClient from "./PortalClient";
+import { notFound, redirect } from "next/navigation";
+import DashboardClient from "./DashboardClient";
 
 const prisma = new PrismaClient();
 
-export default async function PortalPage({
+export default async function DashboardPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -19,5 +19,9 @@ export default async function PortalPage({
     notFound();
   }
 
-  return <PortalClient tenant={tenant} />;
+  if (!tenant.moduleContracts) {
+    redirect(`/${slug}/dashboard`);
+  }
+
+  return <DashboardClient tenant={tenant} />;
 }

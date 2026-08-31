@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Lock, Mail, ArrowRight, ShieldCheck, Server, Zap, CheckCircle2 } from "lucide-react";
 import InteractiveBackground from "@/components/InteractiveBackground";
-import pkg from "../../../../package.json";
+import pkg from "../../../package.json";
 
 export default function PortalLoginPage() {
   const [email, setEmail] = useState("");

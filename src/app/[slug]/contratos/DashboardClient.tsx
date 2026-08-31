@@ -95,8 +95,19 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
 
       if (!res.ok) throw new Error("Falha ao extrair dados");
 
-      const extracted: ExtractedData[] = await res.json();
-      setDataList(extracted);
+      const result = await res.json();
+      
+      // Retrocompatibility with the old format (just an array)
+      if (Array.isArray(result)) {
+        setDataList(result);
+      } else {
+        // New resilient format
+        setDataList(result.success || []);
+        if (result.errors && result.errors.length > 0) {
+          const errorMessages = result.errors.map((e: any) => `• ${e.fileName}: ${e.message}`).join("\n");
+          setError(`Atenção: Alguns arquivos não puderam ser processados:\n${errorMessages}`);
+        }
+      }
     } catch (err: any) {
       setError(err.message || "Ocorreu um erro na extração");
     } finally {

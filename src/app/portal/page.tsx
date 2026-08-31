@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Lock, Mail, ArrowRight, ShieldCheck, Server, Zap, CheckCircle2 } from "lucide-react";
 import InteractiveBackground from "@/components/InteractiveBackground";
+import pkg from "../../../../package.json";
 
 export default function PortalLoginPage() {
   const [email, setEmail] = useState("");
@@ -194,7 +195,7 @@ export default function PortalLoginPage() {
               <ShieldCheck className="w-4 h-4" />
               <span>Ambiente seguro</span>
             </div>
-            <span>v2.0.0</span>
+            <span>v{pkg.version}</span>
           </div>
 
         </div>

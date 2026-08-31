@@ -37,51 +37,71 @@ export async function POST(req: Request) {
 
     const ai = new GoogleGenAI({ apiKey });
     
-    // Process all files in parallel
-    const extractions = await Promise.all(
+    // Process all files in parallel with isolated error handling
+    const results = await Promise.allSettled(
       files.map(async (file) => {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const mimeType = file.type || "application/pdf";
-        
-        const prompt = `Extraia as seguintes informações da ficha cadastral em anexo e retorne APENAS um objeto JSON válido (sem formatação markdown) com as seguintes chaves (exatamente com estes nomes, em camelCase):
-        - nome
-        - nacionalidade
-        - dataNascimento (apenas a data ex: 17/01/1998)
-        - estadoCivil
-        - profissao (geralmente "Médico" ou na função)
-        - carteiraProfissional (ex: 55082 CRM/PR)
-        - rg
-        - cpf
-        - endereco (Rua, número e bairro se tiver)
-        - cep
-        - cidade (Se possível deduzir ou extrair)
-        - estado (UF, ex: SP ou Paraná)
-        
-        Se a ficha estiver vazia ou não tiver dados legíveis, retorne um objeto vazio.`;
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const mimeType = file.type || "application/pdf";
+          
+          const prompt = `Extraia as seguintes informações da ficha cadastral em anexo e retorne APENAS um objeto JSON válido (sem formatação markdown) com as seguintes chaves (exatamente com estes nomes, em camelCase):
+          - nome
+          - nacionalidade
+          - dataNascimento (apenas a data ex: 17/01/1998)
+          - estadoCivil
+          - profissao (geralmente "Médico" ou na função)
+          - carteiraProfissional (ex: 55082 CRM/PR)
+          - rg
+          - cpf
+          - endereco (Rua, número e bairro se tiver)
+          - cep
+          - cidade (Se possível deduzir ou extrair)
+          - estado (UF, ex: SP ou Paraná)
+          
+          Se a ficha estiver vazia ou não tiver dados legíveis, retorne um objeto vazio.`;
 
-        const response = await ai.models.generateContent({
-          model: "gemini-3.6-flash",
-          contents: [
-            { role: "user", parts: [
-              { inlineData: { data: buffer.toString("base64"), mimeType } },
-              { text: prompt }
-            ]}
-          ],
-          config: {
-            responseMimeType: "application/json"
-          }
-        });
+          const response = await ai.models.generateContent({
+            model: "gemini-3.6-flash",
+            contents: [
+              { role: "user", parts: [
+                { inlineData: { data: buffer.toString("base64"), mimeType } },
+                { text: prompt }
+              ]}
+            ],
+            config: {
+              responseMimeType: "application/json"
+            }
+          });
 
-        const jsonString = response.text || "{}";
-        return JSON.parse(jsonString) as ExtractedData;
+          const jsonString = response.text || "{}";
+          const data = JSON.parse(jsonString) as ExtractedData;
+          return { fileName: file.name, data };
+        } catch (err: any) {
+          console.error(`Erro ao processar arquivo ${file.name}:`, err.message);
+          throw new Error(err.message || "Falha na extração");
+        }
       })
     );
 
-    // Filter out empty objects in case a file had no readable data
-    const validExtractions = extractions.filter(d => d.nome && d.nome.trim() !== "");
+    const success: ExtractedData[] = [];
+    const errors: { fileName: string; message: string }[] = [];
 
-    return NextResponse.json(validExtractions);
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        const { data } = result.value;
+        if (data && data.nome && data.nome.trim() !== "") {
+          success.push(data);
+        } else {
+          // Extracted successfully but no valid data found
+          errors.push({ fileName: files[index].name, message: "Nenhum dado legível encontrado na ficha." });
+        }
+      } else {
+        errors.push({ fileName: files[index].name, message: "Falha na comunicação com a IA ou formato inválido." });
+      }
+    });
+
+    return NextResponse.json({ success, errors });
 
   } catch (error: any) {
     console.error("Erro na extração em lote:", error);

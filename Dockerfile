@@ -50,4 +50,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # O comando inicial roda o push do banco e depois o servidor
-CMD npx prisma db push --accept-data-loss && node server.js
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node server.js"]

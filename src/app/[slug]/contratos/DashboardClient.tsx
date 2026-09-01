@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UploadCloud, FileText, Loader2, Download, FileDown, LogOut, Settings, Users, Plus, Trash2, Shield, Sun, Moon, Edit2, History, LayoutTemplate, FileSpreadsheet } from "lucide-react";
+import { UploadCloud, FileText, Loader2, Download, FileDown, LogOut, Settings, Users, Plus, Trash2, Shield, Sun, Moon, Edit2, History, LayoutTemplate, FileSpreadsheet, LayoutDashboard } from "lucide-react";
 import { ExtractedData } from "@/types";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";

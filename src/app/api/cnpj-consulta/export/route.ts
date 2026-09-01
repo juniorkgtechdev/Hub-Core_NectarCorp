@@ -74,7 +74,7 @@ export async function POST(req: Request) {
               if (logoPath.startsWith("/uploads")) {
                 logoPath = path.join(process.cwd(), "public", logoPath);
               }
-              if (fs.existsSync(logoPath)) {
+              if (fs.existsSync(/*turbopackIgnore: true*/ logoPath)) {
                 doc.image(logoPath, 40, 40, { height: 40 });
                 doc.moveDown(3);
               }
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
         }
       });
 
-      return new NextResponse(pdfBuffer, {
+      return new NextResponse(new Uint8Array(pdfBuffer), {
         status: 200,
         headers: {
           "Content-Type": "application/pdf",

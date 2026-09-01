@@ -43,11 +43,38 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
 
+  // Modal states
+  const [showModal, setShowModal] = useState(false);
+  const [cnpjsInHistory, setCnpjsInHistory] = useState<any[]>([]);
+  const [pendingValidCnpjs, setPendingValidCnpjs] = useState<string[]>([]);
+
   useEffect(() => {
     fetch("/api/cnpj-consulta/history")
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setHistory(data);
+        if (Array.isArray(data)) {
+          setHistory(data);
+          
+          if (data.length > 0) {
+            const historyMapped: CnpjResult[] = data.map(h => ({
+              cnpj: h.cnpj,
+              razaoSocial: h.razaoSocial || "N/A",
+              nomeFantasia: h.nomeFantasia || "N/A",
+              situacao: h.situacao || "N/A",
+              simples: { optante: h.simplesOptante, dataOpcao: null },
+              simei: { optante: h.simeiOptante },
+              endereco: h.endereco || "",
+              municipio: h.municipio || "",
+              uf: h.uf || "",
+              cep: h.cep || "",
+              atividadePrincipal: ""
+            }));
+            
+            setResults(historyMapped);
+            setTotalParsed(data.length);
+            setHasSearched(true);
+          }
+        }
       })
       .catch(console.error);
   }, []);
@@ -59,41 +86,62 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
   const handleConsultar = async () => {
     if (!inputText.trim()) return;
 
-    setLoading(true);
-    setHasSearched(true);
+    setHasSearched(false);
     setResults([]);
     setErrors([]);
     setInvalidLocal([]);
 
-    try {
-      // Parse e normaliza
-      const rawCnpjs = inputText.split(/[\n,;\s]+/).filter(Boolean);
-      const normalizedCnpjs = rawCnpjs.map(normalizeCnpj).filter(Boolean);
+    // Parse e normaliza
+    const rawCnpjs = inputText.split(/[\n,;\s]+/).filter(Boolean);
+    const normalizedCnpjs = rawCnpjs.map(normalizeCnpj).filter(Boolean);
+    
+    // Remover duplicatas
+    const uniqueCnpjs = Array.from(new Set(normalizedCnpjs));
+    setTotalParsed(uniqueCnpjs.length);
+
+    const validCnpjs: string[] = [];
+    const invalid: string[] = [];
+
+    uniqueCnpjs.forEach((cnpj) => {
+      if (cnpj.length === 14) {
+        validCnpjs.push(cnpj);
+      } else {
+        invalid.push(cnpj);
+      }
+    });
+
+    setInvalidLocal(invalid);
+
+    if (validCnpjs.length > 0) {
+      const alreadyInDb = validCnpjs.filter(cnpj => history.some(h => h.cnpj === cnpj));
       
-      // Remover duplicatas
-      const uniqueCnpjs = Array.from(new Set(normalizedCnpjs));
-      setTotalParsed(uniqueCnpjs.length);
+      if (alreadyInDb.length > 0) {
+        setCnpjsInHistory(history.filter(h => validCnpjs.includes(h.cnpj)));
+        setPendingValidCnpjs(validCnpjs);
+        setShowModal(true);
+      } else {
+        executeConsulta(validCnpjs, []);
+      }
+    } else {
+      setHasSearched(true);
+    }
+  };
 
-      const validCnpjs: string[] = [];
-      const invalid: string[] = [];
-
-      uniqueCnpjs.forEach((cnpj) => {
-        if (cnpj.length === 14) {
-          validCnpjs.push(cnpj);
-        } else {
-          invalid.push(cnpj);
-        }
-      });
-
-      setInvalidLocal(invalid);
-
-      if (validCnpjs.length > 0) {
+  const executeConsulta = async (cnpjsToFetch: string[], cnpjsFromHistory: any[]) => {
+    setLoading(true);
+    setHasSearched(true);
+    
+    try {
+      let apiResults: CnpjResult[] = [];
+      let apiErrors: CnpjError[] = [];
+      
+      if (cnpjsToFetch.length > 0) {
         const response = await fetch("/api/cnpj-consulta", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ cnpjs: validCnpjs }),
+          body: JSON.stringify({ cnpjs: cnpjsToFetch }),
         });
 
         if (!response.ok) {
@@ -101,14 +149,61 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
         }
 
         const data = await response.json();
-        setResults(data.success || []);
-        setErrors(data.errors || []);
+        apiResults = data.success || [];
+        apiErrors = data.errors || [];
+
+        // Auto-save the newly fetched ones
+        if (apiResults.length > 0) {
+          try {
+            await fetch("/api/cnpj-consulta/save", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ results: apiResults })
+            });
+            // Reload history silently
+            const histRes = await fetch("/api/cnpj-consulta/history");
+            const histData = await histRes.json();
+            if (Array.isArray(histData)) setHistory(histData);
+          } catch (e) {
+            console.error("Erro ao auto-salvar histórico:", e);
+          }
+        }
       }
+
+      // Map history data back to CnpjResult format
+      const historyMapped: CnpjResult[] = cnpjsFromHistory.map(h => ({
+        cnpj: h.cnpj,
+        razaoSocial: h.razaoSocial || "N/A",
+        nomeFantasia: h.nomeFantasia || "N/A",
+        situacao: h.situacao || "N/A",
+        simples: { optante: h.simplesOptante, dataOpcao: null },
+        simei: { optante: h.simeiOptante },
+        endereco: h.endereco || "",
+        municipio: h.municipio || "",
+        uf: h.uf || "",
+        cep: h.cep || "",
+        atividadePrincipal: ""
+      }));
+
+      setResults([...historyMapped, ...apiResults]);
+      setErrors(apiErrors);
     } catch (err: any) {
       console.error(err);
       setErrors([{ cnpj: "Erro Geral", message: err.message || "Ocorreu um erro na requisição." }]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleModalAction = (refazer: boolean) => {
+    setShowModal(false);
+    if (refazer) {
+      // Refazer consulta na API para TODOS (ignorando o histórico)
+      executeConsulta(pendingValidCnpjs, []);
+    } else {
+      // Buscar apenas os que não estão no histórico
+      const toFetch = pendingValidCnpjs.filter(c => !cnpjsInHistory.some(h => h.cnpj === c));
+      executeConsulta(toFetch, cnpjsInHistory);
     }
   };
 
@@ -400,6 +495,45 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
           </div>
         </main>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-4 text-purple-400">
+              <AlertCircle className="w-6 h-6" />
+              <h2 className="text-lg font-bold text-white">CNPJs já consultados</h2>
+            </div>
+            
+            <p className="text-gray-300 text-sm mb-6">
+              Identificamos que <strong>{cnpjsInHistory.length}</strong> dos CNPJs inseridos já estão salvos no seu banco de dados.
+              <br /><br />
+              Deseja refazer a consulta na API para atualizar os dados, ou usar as informações já salvas para maior rapidez?
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => handleModalAction(false)}
+                className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl font-medium transition-colors text-white"
+              >
+                Usar dados do banco (Não atualizar)
+              </button>
+              <button 
+                onClick={() => handleModalAction(true)}
+                className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-purple-500/25"
+              >
+                Refazer consulta (Atualizar dados)
+              </button>
+              <button 
+                onClick={() => setShowModal(false)}
+                className="w-full px-4 py-2 mt-2 text-gray-500 hover:text-white transition-colors text-sm font-medium"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

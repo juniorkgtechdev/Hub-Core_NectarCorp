@@ -32,9 +32,9 @@ export async function middleware(req: NextRequest) {
 
   // Se a rota acessada for uma página dentro do painel da empresa: ex: /[slug]/dashboard
   const parts = pathname.split("/").filter(Boolean);
-  const isDashboardRoute = parts.length > 1 && parts[1] === "dashboard";
+  const isProtectedRoute = parts.length > 1 && (parts[1] === "dashboard" || parts[1] === "cnpj");
   
-  if (isDashboardRoute) {
+  if (isProtectedRoute) {
     const slug = parts[0]; // ex: "medprimesaude"
     
     if (!token) {

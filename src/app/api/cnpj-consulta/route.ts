@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       }
 
       try {
-        const url = `https://open.cnpja.com/office/${cnpj}`;
+        const url = `https://brasilapi.com.br/api/cnpj/v1/${cnpj.replace(/\D/g, '')}`;
         const response = await fetch(url, {
           method: "GET",
           headers: {
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
         }
 
         if (!response.ok) {
-          throw new Error(`Erro na API CNPJa: ${response.status} ${response.statusText}`);
+          throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
@@ -62,24 +62,24 @@ export async function POST(req: Request) {
         const data = result.value.data;
         const cnpjOriginal = result.value.cnpj;
         
-        // Mapeamento dos campos principais
+        // Mapeamento dos campos principais para o formato esperado
         success.push({
           cnpj: cnpjOriginal,
-          razaoSocial: data.company?.name || "N/A",
-          nomeFantasia: data.alias || "N/A",
-          situacao: data.status?.text || "N/A",
+          razaoSocial: data.razao_social || "N/A",
+          nomeFantasia: data.nome_fantasia || "N/A",
+          situacao: data.descricao_situacao_cadastral || "N/A",
           simples: {
-            optante: !!data.simples?.optant,
-            dataOpcao: data.simples?.since || null,
+            optante: !!data.opcao_pelo_simples,
+            dataOpcao: data.data_opcao_pelo_simples || null,
           },
           simei: {
-            optante: !!data.simei?.optant,
+            optante: !!data.opcao_pelo_mei,
           },
-          endereco: data.address?.street || "",
-          municipio: data.address?.city || "",
-          uf: data.address?.state || "",
-          cep: data.address?.zip || "",
-          atividadePrincipal: data.mainActivity?.text || "",
+          endereco: data.descricao_tipo_de_logradouro ? `${data.descricao_tipo_de_logradouro} ${data.logradouro}, ${data.numero || 'S/N'}` : (data.logradouro || ""),
+          municipio: data.municipio || "",
+          uf: data.uf || "",
+          cep: data.cep || "",
+          atividadePrincipal: data.cnae_fiscal_descricao || "",
         });
       } else {
         errors.push({ 

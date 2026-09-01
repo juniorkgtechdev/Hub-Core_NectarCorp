@@ -230,6 +230,35 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
           </header>
 
           <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+            {/* Stats (Cards) na parte superior */}
+            {hasSearched && (
+              <div className="grid grid-cols-5 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+                  <p className="text-gray-400 text-sm">Total Identificados</p>
+                  <p className="text-2xl font-bold mt-1">{totalParsed}</p>
+                </div>
+                <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+                  <p className="text-gray-400 text-sm">Sucesso</p>
+                  <p className="text-2xl font-bold text-green-400 mt-1">{results.length}</p>
+                </div>
+                <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+                  <p className="text-gray-400 text-sm">Optantes</p>
+                  <p className="text-2xl font-bold text-blue-400 mt-1">
+                    {results.filter(r => r.simples.optante).length}
+                  </p>
+                </div>
+                <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+                  <p className="text-gray-400 text-sm">Não Optantes</p>
+                  <p className="text-2xl font-bold text-orange-400 mt-1">
+                    {results.filter(r => !r.simples.optante).length}
+                  </p>
+                </div>
+                <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+                  <p className="text-gray-400 text-sm">Erros</p>
+                  <p className="text-2xl font-bold text-red-400 mt-1">{errors.length + invalidLocal.length}</p>
+                </div>
+              </div>
+            )}
             {/* Input Section */}
             <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -265,34 +294,6 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
             {/* Results Section */}
             {hasSearched && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Stats */}
-                <div className="grid grid-cols-5 gap-4">
-                  <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
-                    <p className="text-gray-400 text-sm">Total Identificados</p>
-                    <p className="text-2xl font-bold mt-1">{totalParsed}</p>
-                  </div>
-                  <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
-                    <p className="text-gray-400 text-sm">Sucesso</p>
-                    <p className="text-2xl font-bold text-green-400 mt-1">{results.length}</p>
-                  </div>
-                  <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
-                    <p className="text-gray-400 text-sm">Optantes</p>
-                    <p className="text-2xl font-bold text-blue-400 mt-1">
-                      {results.filter(r => r.simples.optante).length}
-                    </p>
-                  </div>
-                  <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
-                    <p className="text-gray-400 text-sm">Não Optantes</p>
-                    <p className="text-2xl font-bold text-orange-400 mt-1">
-                      {results.filter(r => !r.simples.optante).length}
-                    </p>
-                  </div>
-                  <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
-                    <p className="text-gray-400 text-sm">Erros</p>
-                    <p className="text-2xl font-bold text-red-400 mt-1">{errors.length + invalidLocal.length}</p>
-                  </div>
-                </div>
-
                 {/* Errors Display */}
                 {(errors.length > 0 || invalidLocal.length > 0) && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">

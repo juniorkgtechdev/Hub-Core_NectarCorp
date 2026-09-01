@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Building, CheckCircle, XCircle, AlertCircle, FileText, Search, LayoutDashboard } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Building, CheckCircle, XCircle, AlertCircle, FileText, Search, LayoutDashboard, Save, Download, FileSpreadsheet } from "lucide-react";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import Link from "next/link";
 
@@ -39,6 +39,18 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
   const [invalidLocal, setInvalidLocal] = useState<string[]>([]);
   const [totalParsed, setTotalParsed] = useState(0);
   const [hasSearched, setHasSearched] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/cnpj-consulta/history")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setHistory(data);
+      })
+      .catch(console.error);
+  }, []);
 
   const normalizeCnpj = (text: string) => {
     return text.replace(/[^\d]/g, "");
@@ -98,6 +110,78 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSave = async () => {
+    if (results.length === 0) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/cnpj-consulta/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ results })
+      });
+      if (response.ok) {
+        alert("Consultas salvas no histórico com sucesso!");
+        // Reload history
+        const histRes = await fetch("/api/cnpj-consulta/history");
+        const histData = await histRes.json();
+        if (Array.isArray(histData)) setHistory(histData);
+      } else {
+        alert("Erro ao salvar histórico.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao salvar histórico.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExport = async (format: "pdf" | "excel") => {
+    if (results.length === 0) return;
+    setExporting(format);
+    try {
+      const response = await fetch("/api/cnpj-consulta/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ results, format })
+      });
+      if (!response.ok) throw new Error("Erro na exportação");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Consulta_CNPJ.${format === "excel" ? "xlsx" : "pdf"}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert("Falha ao exportar arquivo.");
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const getDiffStatus = (current: CnpjResult) => {
+    const past = history.find(h => h.cnpj === current.cnpj);
+    if (!past) return { type: "NOVO", text: "Novo", color: "bg-blue-500/10 text-blue-400" };
+    
+    let changed = false;
+    let reason = "";
+    if (past.simplesOptante !== current.simples.optante) {
+      changed = true;
+      reason = `Simples mudou para ${current.simples.optante ? "SIM" : "NÃO"}`;
+    } else if (past.situacao !== current.situacao) {
+      changed = true;
+      reason = `Situação mudou para ${current.situacao}`;
+    }
+
+    if (changed) return { type: "ALTERADO", text: reason, color: "bg-purple-500/10 text-purple-400 border border-purple-500/30" };
+    return { type: "IGUAL", text: "Sem mudança", color: "text-gray-500" };
   };
 
   const formatCnpj = (cnpj: string) => {
@@ -227,6 +311,27 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
                   </div>
                 )}
 
+                {/* Table Header with Actions */}
+                {results.length > 0 && (
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold">Resultados da Consulta</h3>
+                    <div className="flex gap-3">
+                      <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-700">
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-green-400" />}
+                        Salvar no Histórico
+                      </button>
+                      <button onClick={() => handleExport("excel")} disabled={exporting !== null} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-700">
+                        {exporting === "excel" ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 text-emerald-400" />}
+                        Excel
+                      </button>
+                      <button onClick={() => handleExport("pdf")} disabled={exporting !== null} className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-700">
+                        {exporting === "pdf" ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 text-red-400" />}
+                        PDF
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Table */}
                 {results.length > 0 && (
                   <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl overflow-hidden">
@@ -238,11 +343,13 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
                             <th className="px-6 py-4 font-medium">Razão Social</th>
                             <th className="px-6 py-4 font-medium">Situação</th>
                             <th className="px-6 py-4 font-medium">Simples Nacional</th>
-                            <th className="px-6 py-4 font-medium">SIMEI</th>
+                            <th className="px-6 py-4 font-medium">Status / Diff</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700/30">
-                          {results.map((r, idx) => (
+                          {results.map((r, idx) => {
+                            const diff = getDiffStatus(r);
+                            return (
                             <tr key={idx} className="hover:bg-gray-800/50 transition-colors">
                               <td className="px-6 py-4 font-mono text-gray-300">
                                 {formatCnpj(r.cnpj)}
@@ -275,14 +382,13 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
                                 )}
                               </td>
                               <td className="px-6 py-4">
-                                {r.simei.optante ? (
-                                  <span className="text-green-400 font-medium">SIM</span>
-                                ) : (
-                                  <span className="text-gray-500">NÃO</span>
-                                )}
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${diff.color}`}>
+                                  {diff.text}
+                                </span>
                               </td>
                             </tr>
-                          ))}
+                          );
+                          })}
                         </tbody>
                       </table>
                     </div>

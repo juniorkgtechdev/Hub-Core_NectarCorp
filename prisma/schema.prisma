@@ -23,6 +23,7 @@ model Tenant {
   users           User[]
   templates       ContractTemplate[]
   documents       GeneratedDocument[]
+  cnpjConsultas   CnpjConsulta[]
 
   moduleContracts Boolean @default(true)
   createdAt       DateTime @default(now())
@@ -79,4 +80,28 @@ model PasswordResetToken {
   expires DateTime
 
   @@unique([email, token])
+}
+
+// Histórico de Consultas de CNPJ
+model CnpjConsulta {
+  id              String   @id @default(cuid())
+  cnpj            String
+  razaoSocial     String?
+  nomeFantasia    String?
+  situacao        String?
+  simplesOptante  Boolean  @default(false)
+  simeiOptante    Boolean  @default(false)
+  endereco        String?
+  municipio       String?
+  uf              String?
+  cep             String?
+  
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  consultadoEm    DateTime @default(now())
+
+  // Define unicidade para manter apenas o último registro ou histórico. 
+  // Faremos update no CNPJ do Tenant.
+  @@unique([tenantId, cnpj])
 }

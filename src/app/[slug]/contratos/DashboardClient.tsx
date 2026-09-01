@@ -247,26 +247,47 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
   useEffect(() => { if (showTeamModal) fetchTeam(); }, [showTeamModal]);
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col relative transition-colors duration-500 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`flex h-screen overflow-hidden font-sans relative transition-colors duration-500 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-slate-50 text-slate-800'}`}>
       {isDark && <InteractiveBackground colorful={false} staticMode={true} />}
 
-      <nav className={`relative z-10 px-6 py-4 flex items-center justify-between transition-colors ${
-        isDark ? 'bg-black/40 backdrop-blur-md border-b border-white/10' : 'bg-white border-b border-slate-200 shadow-sm'
-      }`}>
-        <div className="flex items-center gap-3">
+      {/* Sidebar */}
+      <aside className={`relative z-20 w-64 border-r flex flex-col transition-all duration-300 ${isDark ? 'bg-[#0a0a0a]/80 backdrop-blur-xl border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className="p-6 flex items-center gap-3">
           {tenant.logoUrl ? (
-            <div className={`relative w-8 h-8 rounded-md overflow-hidden p-0.5 border flex items-center justify-center ${
-              isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'
-            }`}>
+            <div className={`relative w-10 h-10 rounded-xl overflow-hidden p-0.5 border flex items-center justify-center ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
               <img src={tenant.logoUrl.startsWith('/uploads/') ? `/api${tenant.logoUrl}` : tenant.logoUrl} alt="Logo" className="w-full h-full object-contain" />
             </div>
           ) : (
-            <div className="w-8 h-8 bg-indigo-500/20 border border-indigo-500/30 rounded-lg flex items-center justify-center text-indigo-500 font-bold">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${isDark ? 'bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30' : 'bg-indigo-100 text-indigo-600 border border-indigo-200'}`}>
               {tenant.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <span className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{tenant.name}</span>
+          <div>
+            <h2 className={`font-bold text-lg tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              {tenant.name}
+            </h2>
+            <p className={`text-xs font-medium tracking-wider uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Contratos</p>
+          </div>
         </div>
+
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          <Link href={`/${tenant.slug}/dashboard`} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'}`}>
+            <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="font-medium">Dashboard</span>
+          </Link>
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${isDark ? 'bg-[#D9AE55]/10 text-[#D9AE55]' : 'bg-indigo-50 text-indigo-700'}`}>
+            <FileText className="w-5 h-5" />
+            <span>Gerador de Contratos</span>
+          </div>
+        </nav>
+      </aside>
+
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
+        <nav className={`px-6 py-4 flex items-center justify-end transition-colors ${
+          isDark ? 'bg-black/40 backdrop-blur-md border-b border-white/10' : 'bg-white border-b border-slate-200 shadow-sm'
+        }`}>
+
         <div className="flex items-center gap-4">
           <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={`p-2 rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'}`} title="Alternar Tema">
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -281,14 +302,14 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
               <Settings className="w-4 h-4" /> Admin Global
             </Link>
           )}
-          <Link href={`/${tenant.slug}/dashboard`} className={`text-sm font-medium transition-colors flex items-center gap-1 border-l pl-4 border-slate-200 dark:border-white/10 ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Portal</Link>
+
           <button onClick={async () => { await signOut({ redirect: false }); window.location.href = "/"; }} className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 ml-2 border-l pl-4 border-slate-200 dark:border-white/10">
             <LogOut className="w-4 h-4" /> Sair
           </button>
         </div>
       </nav>
 
-      <main className="relative z-10 flex-1 p-8 flex flex-col">
+      <main className="flex-1 p-8 flex flex-col overflow-y-auto">
         <div className="max-w-6xl mx-auto w-full space-y-8 flex-1">
           <header className="text-center mb-10">
             <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Gerador de Contratos e Boletins</h1>
@@ -715,6 +736,7 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

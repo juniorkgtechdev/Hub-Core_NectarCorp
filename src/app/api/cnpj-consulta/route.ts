@@ -24,15 +24,16 @@ export async function POST(req: Request) {
     // Remover duplicatas
     const uniqueCnpjs = Array.from(new Set(cnpjs));
 
-    // Consultas com Promise.allSettled para não parar em caso de erro individual.
-    // Usaremos também um pequeno delay para evitar bater no rate limit fortemente se a lista for grande.
-    const results = await Promise.allSettled(
-      uniqueCnpjs.map(async (cnpj, index) => {
-        // Delay escalonado para evitar rate limit massivo de uma vez
-        if (index > 0) {
-          await delay(index * 300);
-        }
+    // Processamento estritamente sequencial com delay para respeitar o rate limit da API gratuita
+    const results: any[] = [];
+    for (let i = 0; i < uniqueCnpjs.length; i++) {
+      const cnpj = uniqueCnpjs[i];
+      
+      if (i > 0) {
+        await delay(1500); // Espera 1.5 segundos entre cada requisição
+      }
 
+      try {
         const url = `https://open.cnpja.com/office/${cnpj}`;
         const response = await fetch(url, {
           method: "GET",
@@ -41,19 +42,25 @@ export async function POST(req: Request) {
           },
         });
 
+        if (response.status === 429) {
+          throw new Error("Rate limit atingido (Muitas requisições).");
+        }
+
         if (!response.ok) {
           throw new Error(`Erro na API CNPJa: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
-        return { cnpj, data };
-      })
-    );
+        results.push({ status: "fulfilled", value: { cnpj, data } });
+      } catch (err: any) {
+        results.push({ status: "rejected", reason: err, cnpj });
+      }
+    }
 
-    results.forEach((result, index) => {
-      const cnpjOriginal = uniqueCnpjs[index];
+    results.forEach((result) => {
       if (result.status === "fulfilled") {
         const data = result.value.data;
+        const cnpjOriginal = result.value.cnpj;
         
         // Mapeamento dos campos principais
         success.push({
@@ -76,8 +83,8 @@ export async function POST(req: Request) {
         });
       } else {
         errors.push({ 
-          cnpj: cnpjOriginal, 
-          message: "Não foi possível consultar este CNPJ. Pode ser inválido ou rate limit atingido." 
+          cnpj: result.cnpj, 
+          message: result.reason?.message || "Não foi possível consultar este CNPJ. Pode ser inválido ou rate limit atingido." 
         });
       }
     });

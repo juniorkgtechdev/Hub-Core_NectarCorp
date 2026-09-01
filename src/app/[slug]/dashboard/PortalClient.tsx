@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut, Settings, Sun, Moon, FileText, Lock } from "lucide-react";
+import { LogOut, Settings, Sun, Moon, FileText, Lock, Building } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import InteractiveBackground from "@/components/InteractiveBackground";
@@ -108,6 +108,23 @@ export default function PortalClient({ tenant }: { tenant: Tenant }) {
               <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>Gerador de Contratos</h3>
               <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Gere contratos e boletins em lote de forma automatizada a partir de PDFs extraídos.
+              </p>
+            </div>
+
+            {/* Module Card: Consulta CNPJ */}
+            <div 
+              onClick={() => handleAccessModule(`/${tenant.slug}/cnpj`, true)}
+              className={`relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-xl ${isDark ? 'bg-white/5 border-white/10 hover:border-purple-500/50 hover:bg-white/10' : 'bg-white border-slate-200 hover:border-purple-500 hover:shadow-purple-500/10'}`}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${
+                isDark ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'
+              }`}>
+                <Building className="w-6 h-6" />
+              </div>
+              
+              <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>Consulta CNPJ</h3>
+              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Consulte a situação cadastral e opção pelo Simples Nacional de múltiplos CNPJs em lote.
               </p>
             </div>
 

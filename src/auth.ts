@@ -89,6 +89,7 @@ export const {
   callbacks: {
     jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
         token.role = user.role;
         token.tenantId = user.tenantId;
         token.tenantSlug = (user as any).tenantSlug;
@@ -97,6 +98,7 @@ export const {
     },
     session({ session, token }) {
       if (token && session.user) {
+        session.user.id = (token.id || token.sub) as string;
         session.user.role = token.role as string;
         session.user.tenantId = token.tenantId as string | null;
         (session.user as any).tenantSlug = token.tenantSlug as string | null;

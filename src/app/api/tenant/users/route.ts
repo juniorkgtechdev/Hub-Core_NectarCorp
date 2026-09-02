@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { getToken } from 'next-auth/jwt';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { generatePasswordResetToken } from '@/lib/tokens';
@@ -8,24 +9,50 @@ import { sendPasswordResetEmail } from '@/lib/mail';
 
 export const dynamic = 'force-dynamic';
 
+async function getAuthUser(req: Request) {
+  const session = await auth();
+  if (session && session.user) {
+    return {
+      id: session.user.id,
+      role: session.user.role,
+      tenantId: (session.user as any).tenantId,
+      tenantSlug: (session.user as any).tenantSlug,
+    };
+  }
+
+  // Fallback com getToken
+  const token = await getToken({
+    req: req as any,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "super-secret-key-change-in-production",
+  });
+
+  if (token) {
+    return {
+      id: (token.id || token.sub) as string,
+      role: token.role as string,
+      tenantId: token.tenantId as string | null,
+      tenantSlug: token.tenantSlug as string | null,
+    };
+  }
+
+  return null;
+}
+
 export async function GET(req: Request) {
   try {
-    const session = await auth();
-    if (!session || !session.user || !session.user.id) {
+    const user = await getAuthUser(req);
+    if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const role = session.user.role;
     // Apenas ADMIN ou SUPERADMIN podem listar a equipe
-    if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Permissão negada' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
     const querySlug = searchParams.get('slug') || searchParams.get('tenantSlug');
     const queryTenantId = searchParams.get('tenantId');
-    const sessionSlug = (session.user as any).tenantSlug;
-    const sessionTenantId = (session.user as any).tenantId;
 
     let tenant = null;
 
@@ -33,10 +60,10 @@ export async function GET(req: Request) {
       tenant = await prisma.tenant.findUnique({ where: { id: queryTenantId } });
     } else if (querySlug) {
       tenant = await prisma.tenant.findUnique({ where: { slug: querySlug } });
-    } else if (sessionTenantId) {
-      tenant = await prisma.tenant.findUnique({ where: { id: sessionTenantId } });
-    } else if (sessionSlug) {
-      tenant = await prisma.tenant.findUnique({ where: { slug: sessionSlug } });
+    } else if (user.tenantId) {
+      tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId } });
+    } else if (user.tenantSlug) {
+      tenant = await prisma.tenant.findUnique({ where: { slug: user.tenantSlug } });
     }
 
     if (!tenant) {
@@ -44,7 +71,7 @@ export async function GET(req: Request) {
     }
 
     // Se for ADMIN comum, garantir que está acessando seu próprio tenant
-    if (role === 'ADMIN' && sessionTenantId && sessionTenantId !== tenant.id) {
+    if (user.role === 'ADMIN' && user.tenantId && user.tenantId !== tenant.id) {
       return NextResponse.json({ error: 'Permissão negada para esta empresa' }, { status: 403 });
     }
 
@@ -70,13 +97,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session || !session.user) {
+    const user = await getAuthUser(req);
+    if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const role = session.user.role;
-    if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Permissão negada' }, { status: 403 });
     }
 
@@ -87,25 +113,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email é obrigatório' }, { status: 400 });
     }
 
-    const sessionSlug = (session.user as any).tenantSlug;
-    const sessionTenantId = (session.user as any).tenantId;
-
     let tenant = null;
     if (bodyTenantId) {
       tenant = await prisma.tenant.findUnique({ where: { id: bodyTenantId } });
     } else if (bodySlug) {
       tenant = await prisma.tenant.findUnique({ where: { slug: bodySlug } });
-    } else if (sessionTenantId) {
-      tenant = await prisma.tenant.findUnique({ where: { id: sessionTenantId } });
-    } else if (sessionSlug) {
-      tenant = await prisma.tenant.findUnique({ where: { slug: sessionSlug } });
+    } else if (user.tenantId) {
+      tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId } });
+    } else if (user.tenantSlug) {
+      tenant = await prisma.tenant.findUnique({ where: { slug: user.tenantSlug } });
     }
 
     if (!tenant) {
       return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
     }
 
-    if (role === 'ADMIN' && sessionTenantId && sessionTenantId !== tenant.id) {
+    if (user.role === 'ADMIN' && user.tenantId && user.tenantId !== tenant.id) {
       return NextResponse.json({ error: 'Permissão negada para esta empresa' }, { status: 403 });
     }
 
@@ -159,13 +182,12 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await auth();
-    if (!session || !session.user) {
+    const user = await getAuthUser(req);
+    if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const role = session.user.role;
-    if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Permissão negada' }, { status: 403 });
     }
 
@@ -177,11 +199,9 @@ export async function DELETE(req: Request) {
     }
 
     // Prevenir auto-exclusão
-    if (userId === session.user.id) {
+    if (userId === user.id) {
       return NextResponse.json({ error: 'Não é possível excluir o próprio usuário' }, { status: 400 });
     }
-
-    const sessionTenantId = (session.user as any).tenantId;
 
     const userToDelete = await prisma.user.findUnique({
       where: { id: userId }
@@ -191,7 +211,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
 
-    if (role === 'ADMIN' && sessionTenantId && userToDelete.tenantId !== sessionTenantId) {
+    if (user.role === 'ADMIN' && user.tenantId && userToDelete.tenantId !== user.tenantId) {
       return NextResponse.json({ error: 'Usuário não encontrado nesta empresa' }, { status: 403 });
     }
 
@@ -209,13 +229,12 @@ export async function DELETE(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const session = await auth();
-    if (!session || !session.user) {
+    const user = await getAuthUser(req);
+    if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const role = session.user.role;
-    if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Permissão negada' }, { status: 403 });
     }
 
@@ -225,8 +244,6 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'ID e Email são obrigatórios' }, { status: 400 });
     }
 
-    const sessionTenantId = (session.user as any).tenantId;
-
     const userToEdit = await prisma.user.findUnique({
       where: { id }
     });
@@ -235,7 +252,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
 
-    if (role === 'ADMIN' && sessionTenantId && userToEdit.tenantId !== sessionTenantId) {
+    if (user.role === 'ADMIN' && user.tenantId && userToEdit.tenantId !== user.tenantId) {
       return NextResponse.json({ error: 'Usuário não encontrado nesta empresa' }, { status: 403 });
     }
 

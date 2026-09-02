@@ -34,6 +34,8 @@ export default function AdminPanelClient({
   const [userTenant, setUserTenant] = useState("");
   const [isSubmittingUser, setIsSubmittingUser] = useState(false);
 
+  const [selectedFilterTenantId, setSelectedFilterTenantId] = useState<string | null>(null);
+
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTenantName(val);
@@ -212,6 +214,42 @@ export default function AdminPanelClient({
       alert("Erro ao tentar acessar como usuário.");
     }
   };
+
+  const filteredUsers = selectedFilterTenantId === "none" 
+    ? initialUsers.filter(u => !u.tenantId)
+    : selectedFilterTenantId 
+      ? initialUsers.filter(u => u.tenantId === selectedFilterTenantId)
+      : initialUsers;
+
+  const adminUsers = filteredUsers.filter(u => u.role === 'ADMIN' || u.role === 'SUPERADMIN');
+  const commonUsers = filteredUsers.filter(u => u.role === 'USER');
+
+  const UserCard = ({ u }: { u: User }) => (
+    <li key={u.id} className="p-4 rounded-xl border border-white/5 bg-white/5 flex flex-col space-y-1 group hover:bg-white/10 transition-colors">
+      <div className="flex justify-between items-start gap-4">
+        <span className="font-bold text-slate-200 truncate">{u.name || "Sem nome"}</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider
+            ${u.role === 'SUPERADMIN' ? 'bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30' : 
+              u.role === 'ADMIN' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 
+              'bg-white/10 text-slate-400 border border-white/10'}`}>
+            {u.role}
+          </span>
+          <button onClick={() => handleEditUser(u)} title="Editar Usuário" className="transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button onClick={() => handleImpersonate(u)} title="Acessar como (Impersonate)" className="transition-opacity text-slate-400 hover:text-green-400 p-1 rounded-md hover:bg-white/10">
+            <LogIn className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      <span className="text-sm text-slate-400">{u.email}</span>
+      <div className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
+        <Shield className="w-3.5 h-3.5" />
+        {u.tenant ? u.tenant.name : "Sem vínculo"}
+      </div>
+    </li>
+  );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
@@ -414,38 +452,55 @@ export default function AdminPanelClient({
 
         {/* Lista de Usuários */}
         <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10">
-          <h2 className="text-xl font-bold text-white mb-6">Usuários Cadastrados</h2>
-          {initialUsers.length === 0 ? (
-            <p className="text-slate-500 text-sm">Nenhum usuário encontrado.</p>
-          ) : (
-            <ul className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-              {initialUsers.map((u) => (
-                <li key={u.id} className="p-4 rounded-xl border border-white/5 bg-white/5 flex flex-col space-y-1 group hover:bg-white/10 transition-colors">
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="font-bold text-slate-200 truncate">{u.name || "Sem nome"}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider
-                        ${u.role === 'SUPERADMIN' ? 'bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30' : 
-                          u.role === 'ADMIN' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 
-                          'bg-white/10 text-slate-400 border border-white/10'}`}>
-                        {u.role}
-                      </span>
-                      <button onClick={() => handleEditUser(u)} title="Editar Usuário" className="transition-opacity text-slate-400 hover:text-[#D9AE55] p-1 rounded-md hover:bg-white/10">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleImpersonate(u)} title="Acessar como (Impersonate)" className="transition-opacity text-slate-400 hover:text-green-400 p-1 rounded-md hover:bg-white/10">
-                        <LogIn className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <span className="text-sm text-slate-400">{u.email}</span>
-                  <div className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5" />
-                    {u.tenant ? u.tenant.name : "Sem vínculo"}
-                  </div>
-                </li>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-xl font-bold text-white">Usuários Cadastrados</h2>
+            <select 
+              value={selectedFilterTenantId || ""} 
+              onChange={(e) => setSelectedFilterTenantId(e.target.value || null)}
+              className="rounded-xl bg-black/50 border border-white/10 text-white px-3 py-1.5 focus:border-[#D9AE55] outline-none transition-colors text-sm [&>option]:bg-[#0f0f11]"
+            >
+              <option value="">Todas as Empresas</option>
+              {initialTenants.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
-            </ul>
+              <option value="none">Sem vínculo</option>
+            </select>
+          </div>
+          
+          {filteredUsers.length === 0 ? (
+            <p className="text-slate-500 text-sm">Nenhum usuário encontrado para o filtro atual.</p>
+          ) : (
+            <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
+              {/* Administradores */}
+              <div>
+                <h3 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-indigo-400" />
+                  Administradores ({adminUsers.length})
+                </h3>
+                {adminUsers.length === 0 ? (
+                  <p className="text-slate-600 text-xs italic">Nenhum administrador.</p>
+                ) : (
+                  <ul className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {adminUsers.map((u) => <UserCard key={u.id} u={u} />)}
+                  </ul>
+                )}
+              </div>
+
+              {/* Usuários Comuns */}
+              <div>
+                <h3 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                  <Users className="w-4 h-4 text-slate-400" />
+                  Usuários Comuns ({commonUsers.length})
+                </h3>
+                {commonUsers.length === 0 ? (
+                  <p className="text-slate-600 text-xs italic">Nenhum usuário comum.</p>
+                ) : (
+                  <ul className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {commonUsers.map((u) => <UserCard key={u.id} u={u} />)}
+                  </ul>
+                )}
+              </div>
+            </div>
           )}
         </div>
 

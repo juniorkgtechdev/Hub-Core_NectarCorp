@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Building, CheckCircle, XCircle, AlertCircle, FileText, Search, LayoutDashboard, Save, Download, FileSpreadsheet } from "lucide-react";
+import { Loader2, Building, CheckCircle, XCircle, AlertCircle, FileText, Search, Save, FileSpreadsheet } from "lucide-react";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 
 type Tenant = { id: string; name: string; slug: string; logoUrl: string | null };
 
@@ -298,16 +296,13 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
     <div className={`min-h-screen font-sans flex h-screen overflow-hidden relative transition-colors duration-500 ${isDark ? 'bg-gray-900 text-white selection:bg-purple-500/30' : 'bg-slate-50 text-slate-800 selection:bg-purple-500/30'}`}>
       {isDark && <InteractiveBackground />}
       
-      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} />
+      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <Header isDark={isDark} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
-
         <main className="flex-1 flex flex-col h-screen overflow-hidden">
-          <header className={`h-20 backdrop-blur-md border-b flex items-center justify-between px-8 shrink-0 transition-colors ${
-            isDark ? 'bg-gray-900/30 border-gray-800/50' : 'bg-white border-slate-200'
-          }`}>
+          <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+            {/* Page Header */}
             <div>
               <h1 className={`text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Consulta de Simples Nacional</h1>
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Cole uma lista de CNPJs para consultar dados cadastrais e o Simples.</p>

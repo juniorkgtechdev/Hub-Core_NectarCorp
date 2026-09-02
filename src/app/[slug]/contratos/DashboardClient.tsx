@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { UploadCloud, FileText, Loader2, Download, FileDown, LogOut, Settings, Users, Plus, Trash2, Shield, Sun, Moon, Edit2, History, LayoutTemplate, FileSpreadsheet, LayoutDashboard } from "lucide-react";
 import { ExtractedData } from "@/types";
 import { signOut, useSession } from "next-auth/react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
 
 type Tenant = { id: string; name: string; slug: string; logoUrl: string | null; razaoSocial?: string | null; cnpj?: string | null; endereco?: string | null };
 type User = { id: string; name: string | null; email: string; role: string; createdAt: string };
@@ -215,13 +214,12 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
     <div className={`flex h-screen overflow-hidden font-sans relative transition-colors duration-500 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-slate-50 text-slate-800'}`}>
       {isDark && <InteractiveBackground colorful={false} staticMode={true} />}
 
-      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} />
+      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <Header isDark={isDark} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
 
-      <main className="flex-1 p-8 flex flex-col overflow-y-auto">
+      <main className="flex-1 p-4 md:p-8 flex flex-col overflow-y-auto pt-16 md:pt-8">
         <div className="max-w-6xl mx-auto w-full space-y-8 flex-1">
           <header className="text-center mb-10">
             <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Gerador de Contratos e Boletins</h1>

@@ -5,7 +5,6 @@ import { Loader2, Shield, Plus, Edit2, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
 import { useRouter } from "next/navigation";
 
 type Tenant = { id: string; name: string; slug: string; logoUrl: string | null };
@@ -36,7 +35,7 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
   const fetchTeam = async () => {
     setLoadingTeam(true);
     try {
-      const res = await fetch("/api/tenant/users");
+      const res = await fetch(`/api/tenant/users?_t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) setTeamUsers(await res.json());
     } catch (e) {
       console.error(e);
@@ -107,13 +106,11 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
     <div className={`flex h-screen overflow-hidden font-sans relative transition-colors duration-500 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-slate-50 text-slate-800'}`}>
       {isDark && <InteractiveBackground colorful={false} staticMode={true} />}
       
-      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} />
+      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
 
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <Header isDark={isDark} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
-
-        <main className="flex-1 p-8 flex flex-col overflow-y-auto">
-          <div className="max-w-6xl mx-auto w-full space-y-8 flex-1">
+        <main className="flex-1 p-4 md:p-8 flex flex-col overflow-y-auto pt-16 md:pt-8">
+          <div className="max-w-7xl mx-auto space-y-8 w-full flex-1">
             <header className="mb-10">
               <h1 className={`text-3xl font-bold flex items-center gap-3 ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 <Shield className={`w-8 h-8 ${isDark ? 'text-[#D9AE55]' : 'text-indigo-600'}`} />
@@ -127,7 +124,6 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
             <div className={`border rounded-2xl w-full shadow-lg overflow-hidden flex flex-col lg:flex-row gap-8 p-6 transition-colors relative ${
               isDark ? 'bg-[#0f0f11] border-white/10' : 'bg-white border-slate-200'
             }`}>
-              {/* Form Section */}
               <div className="w-full lg:w-1/3 space-y-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>
@@ -148,9 +144,16 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
                   </div>
                 )}
                 
-                <form onSubmit={handleCreateOrUpdateUser} className="space-y-4">
+                <form onSubmit={handleCreateOrUpdateUser} className="space-y-4" autoComplete="off">
+                  {/* Honeypot para navegadores / Password managers não preencherem os campos abaixo */}
+                  <div style={{ display: 'none' }} aria-hidden="true">
+                    <input type="text" name="fake_username" autoComplete="username" />
+                    <input type="email" name="fake_email" autoComplete="email" />
+                    <input type="password" name="fake_password" autoComplete="new-password" />
+                  </div>
+                  
                   <div>
-                    <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Nome</label>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Nome</label>
                     <input 
                       type="text" required value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})}
                       className={`w-full rounded-lg px-3 py-2 text-sm outline-none border transition-colors ${
@@ -158,10 +161,11 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
                           ? 'bg-black/50 border-white/10 text-white focus:border-[#D9AE55]' 
                           : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
                       }`}
+                      autoComplete="new-name"
                     />
                   </div>
                   <div>
-                    <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Email</label>
+                    <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Email</label>
                     <input 
                       type="email" required value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})}
                       className={`w-full rounded-lg px-3 py-2 text-sm outline-none border transition-colors ${
@@ -169,6 +173,8 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
                           ? 'bg-black/50 border-white/10 text-white focus:border-[#D9AE55]' 
                           : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
                       }`}
+                      autoComplete="new-email"
+                      name="random-email-field"
                     />
                   </div>
                   <div>
@@ -183,6 +189,8 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
                           ? 'bg-black/50 border-white/10 text-white focus:border-[#D9AE55] placeholder:text-slate-600' 
                           : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-400'
                       }`}
+                      autoComplete="new-password"
+                      name="random-password-field"
                     />
                   </div>
                   <div>

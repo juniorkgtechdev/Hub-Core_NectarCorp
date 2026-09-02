@@ -6,7 +6,6 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
 import { useRouter } from "next/navigation";
 
 type Tenant = { id: string; name: string; slug: string; logoUrl: string | null; moduleContracts?: boolean };
@@ -30,12 +29,10 @@ export default function PortalClient({ tenant }: { tenant: Tenant }) {
     <div className={`flex h-screen overflow-hidden font-sans relative transition-colors duration-500 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-slate-50 text-slate-800'}`}>
       {isDark && <InteractiveBackground colorful={false} staticMode={true} />}
 
-      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} />
+      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
 
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <Header isDark={isDark} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
-
-        <main className="flex-1 p-8 flex flex-col overflow-y-auto">
+        <main className="flex-1 p-4 md:p-8 flex flex-col overflow-y-auto pt-16 md:pt-8">
           <div className="max-w-6xl mx-auto space-y-8 w-full">
           <header className="mb-10">
             <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Portal de Recursos</h1>

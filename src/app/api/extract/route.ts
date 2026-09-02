@@ -62,7 +62,7 @@ export async function POST(req: Request) {
           Se a ficha estiver vazia ou não tiver dados legíveis, retorne um objeto vazio.`;
 
           const response = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
+            model: "gemini-3.5-flash-lite",
             contents: [
               { role: "user", parts: [
                 { inlineData: { data: buffer.toString("base64"), mimeType } },

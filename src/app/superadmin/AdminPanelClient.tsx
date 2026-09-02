@@ -451,6 +451,7 @@ export default function AdminPanelClient({
           )}
         </div>
       </div>
+      </div>
 
       {/* Lista de Usuários - Largura Total */}
       <div className="w-full">

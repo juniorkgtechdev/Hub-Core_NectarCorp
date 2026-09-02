@@ -35,10 +35,16 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
   const fetchTeam = async () => {
     setLoadingTeam(true);
     try {
-      const res = await fetch(`/api/tenant/users?_t=${Date.now()}`, { cache: 'no-store' });
-      if (res.ok) setTeamUsers(await res.json());
+      const res = await fetch(`/api/tenant/users?tenantId=${tenant.id}&slug=${tenant.slug}&_t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        setTeamUsers(await res.json());
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setTeamError(err.error || "Erro ao carregar lista de usuários");
+      }
     } catch (e) {
       console.error(e);
+      setTeamError("Erro ao conectar com o servidor para listar equipe");
     } finally { 
       setLoadingTeam(false); 
     }
@@ -55,7 +61,12 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
     setTeamError(null);
     try {
       const method = editingUserId ? "PUT" : "POST";
-      const payload: any = { ...newUser, newRole: newUser.role };
+      const payload: any = { 
+        ...newUser, 
+        newRole: newUser.role,
+        tenantId: tenant.id,
+        tenantSlug: tenant.slug
+      };
       if (editingUserId) payload.id = editingUserId;
       const res = await fetch("/api/tenant/users", { 
         method, 
@@ -89,7 +100,7 @@ export default function EquipeClient({ tenant }: { tenant: Tenant }) {
     if (!confirm("Remover usuário?")) return;
     setLoadingTeam(true);
     try { 
-      await fetch(`/api/tenant/users?id=${id}`, { method: "DELETE" }); 
+      await fetch(`/api/tenant/users?id=${id}&tenantId=${tenant.id}`, { method: "DELETE" }); 
       await fetchTeam(); 
     } catch (e) {
       console.error(e);

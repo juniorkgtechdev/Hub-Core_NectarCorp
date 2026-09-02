@@ -16,24 +16,36 @@ export async function GET(req: Request) {
     }
 
     const role = session.user.role;
-    const tenantSlug = session.user.tenantSlug;
-
-    if (!tenantSlug) {
-      return NextResponse.json({ error: 'Tenant inválido' }, { status: 400 });
-    }
-
     // Apenas ADMIN ou SUPERADMIN podem listar a equipe
     if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Permissão negada' }, { status: 403 });
     }
 
-    // Buscar tenant ID pelo slug associado ao usuário logado
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug: tenantSlug }
-    });
+    const { searchParams } = new URL(req.url);
+    const querySlug = searchParams.get('slug') || searchParams.get('tenantSlug');
+    const queryTenantId = searchParams.get('tenantId');
+    const sessionSlug = (session.user as any).tenantSlug;
+    const sessionTenantId = (session.user as any).tenantId;
+
+    let tenant = null;
+
+    if (queryTenantId) {
+      tenant = await prisma.tenant.findUnique({ where: { id: queryTenantId } });
+    } else if (querySlug) {
+      tenant = await prisma.tenant.findUnique({ where: { slug: querySlug } });
+    } else if (sessionTenantId) {
+      tenant = await prisma.tenant.findUnique({ where: { id: sessionTenantId } });
+    } else if (sessionSlug) {
+      tenant = await prisma.tenant.findUnique({ where: { slug: sessionSlug } });
+    }
 
     if (!tenant) {
       return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
+    }
+
+    // Se for ADMIN comum, garantir que está acessando seu próprio tenant
+    if (role === 'ADMIN' && sessionTenantId && sessionTenantId !== tenant.id) {
+      return NextResponse.json({ error: 'Permissão negada para esta empresa' }, { status: 403 });
     }
 
     // Listar usuários do tenant
@@ -45,7 +57,8 @@ export async function GET(req: Request) {
         email: true,
         role: true,
         createdAt: true,
-      }
+      },
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json(users);
@@ -63,33 +76,42 @@ export async function POST(req: Request) {
     }
 
     const role = session.user.role;
-    const tenantSlug = session.user.tenantSlug;
-
-    if (!tenantSlug) {
-      return NextResponse.json({ error: 'Tenant inválido' }, { status: 400 });
-    }
-
     if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Permissão negada' }, { status: 403 });
     }
 
-    const { name, email, password, newRole } = await req.json();
+    const body = await req.json();
+    const { name, email, password, newRole, tenantId: bodyTenantId, tenantSlug: bodySlug } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email é obrigatório' }, { status: 400 });
     }
 
-    // ADMINs só podem criar 'USER' ou 'ADMIN'
-    const allowedRoles = ['USER', 'ADMIN'];
-    const finalRole = allowedRoles.includes(newRole) ? newRole : 'USER';
+    const sessionSlug = (session.user as any).tenantSlug;
+    const sessionTenantId = (session.user as any).tenantId;
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug: tenantSlug }
-    });
+    let tenant = null;
+    if (bodyTenantId) {
+      tenant = await prisma.tenant.findUnique({ where: { id: bodyTenantId } });
+    } else if (bodySlug) {
+      tenant = await prisma.tenant.findUnique({ where: { slug: bodySlug } });
+    } else if (sessionTenantId) {
+      tenant = await prisma.tenant.findUnique({ where: { id: sessionTenantId } });
+    } else if (sessionSlug) {
+      tenant = await prisma.tenant.findUnique({ where: { slug: sessionSlug } });
+    }
 
     if (!tenant) {
       return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
     }
+
+    if (role === 'ADMIN' && sessionTenantId && sessionTenantId !== tenant.id) {
+      return NextResponse.json({ error: 'Permissão negada para esta empresa' }, { status: 403 });
+    }
+
+    // ADMINs só podem criar 'USER' ou 'ADMIN'
+    const allowedRoles = ['USER', 'ADMIN'];
+    const finalRole = allowedRoles.includes(newRole) ? newRole : 'USER';
 
     // Verifica se usuário já existe
     const existingUser = await prisma.user.findUnique({
@@ -143,12 +165,6 @@ export async function DELETE(req: Request) {
     }
 
     const role = session.user.role;
-    const tenantSlug = session.user.tenantSlug;
-
-    if (!tenantSlug) {
-      return NextResponse.json({ error: 'Tenant inválido' }, { status: 400 });
-    }
-
     if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Permissão negada' }, { status: 403 });
     }
@@ -165,21 +181,18 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Não é possível excluir o próprio usuário' }, { status: 400 });
     }
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug: tenantSlug }
-    });
+    const sessionTenantId = (session.user as any).tenantId;
 
-    if (!tenant) {
-      return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
-    }
-
-    // Verifica se o usuário a ser excluído pertence ao mesmo tenant
     const userToDelete = await prisma.user.findUnique({
       where: { id: userId }
     });
 
-    if (!userToDelete || userToDelete.tenantId !== tenant.id) {
-      return NextResponse.json({ error: 'Usuário não encontrado nesta empresa' }, { status: 404 });
+    if (!userToDelete) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    }
+
+    if (role === 'ADMIN' && sessionTenantId && userToDelete.tenantId !== sessionTenantId) {
+      return NextResponse.json({ error: 'Usuário não encontrado nesta empresa' }, { status: 403 });
     }
 
     // Excluir usuário
@@ -202,12 +215,6 @@ export async function PUT(req: Request) {
     }
 
     const role = session.user.role;
-    const tenantSlug = session.user.tenantSlug;
-
-    if (!tenantSlug) {
-      return NextResponse.json({ error: 'Tenant inválido' }, { status: 400 });
-    }
-
     if (role !== 'ADMIN' && role !== 'SUPERADMIN') {
       return NextResponse.json({ error: 'Permissão negada' }, { status: 403 });
     }
@@ -218,24 +225,22 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'ID e Email são obrigatórios' }, { status: 400 });
     }
 
-    const allowedRoles = ['USER', 'ADMIN'];
-    const finalRole = allowedRoles.includes(newRole) ? newRole : undefined;
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug: tenantSlug }
-    });
-
-    if (!tenant) {
-      return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 });
-    }
+    const sessionTenantId = (session.user as any).tenantId;
 
     const userToEdit = await prisma.user.findUnique({
       where: { id }
     });
 
-    if (!userToEdit || userToEdit.tenantId !== tenant.id) {
-      return NextResponse.json({ error: 'Usuário não encontrado nesta empresa' }, { status: 404 });
+    if (!userToEdit) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
+
+    if (role === 'ADMIN' && sessionTenantId && userToEdit.tenantId !== sessionTenantId) {
+      return NextResponse.json({ error: 'Usuário não encontrado nesta empresa' }, { status: 403 });
+    }
+
+    const allowedRoles = ['USER', 'ADMIN'];
+    const finalRole = allowedRoles.includes(newRole) ? newRole : undefined;
 
     const updateData: any = { name, email };
     

@@ -33,11 +33,12 @@ export async function POST(req: Request) {
     if (format === "excel") {
       // Gerar Excel
       const wsData = results.map((r: any) => ({
+        "Simples Nacional": r.simples?.optante ? "SIM" : "NÃO",
         "CNPJ": r.cnpj,
         "Razão Social": r.razaoSocial,
-        "Nome Fantasia": r.nomeFantasia,
         "Situação": r.situacao,
-        "Simples Nacional": r.simples?.optante ? "SIM" : "NÃO",
+        "Status / Diff": r.diffStatus || "Sem mudança",
+        "Nome Fantasia": r.nomeFantasia,
         "SIMEI": r.simei?.optante ? "SIM" : "NÃO",
         "Endereço": r.endereco,
         "Município": r.municipio,
@@ -89,11 +90,12 @@ export async function POST(req: Request) {
 
           // Lista de resultados
           results.forEach((r: any, idx: number) => {
-            doc.font("Helvetica-Bold").fontSize(12).text(`CNPJ: ${r.cnpj}`);
+            doc.font("Helvetica-Bold").fontSize(12).text(`Simples Nacional: ${r.simples?.optante ? "SIM" : "NÃO"}`);
             doc.font("Helvetica").fontSize(10);
+            doc.text(`CNPJ: ${r.cnpj}`);
             doc.text(`Razão Social: ${r.razaoSocial || "N/A"}`);
             doc.text(`Situação: ${r.situacao || "N/A"}`);
-            doc.text(`Simples Nacional: ${r.simples?.optante ? "SIM" : "NÃO"}`);
+            doc.text(`Status / Diff: ${r.diffStatus || "Sem mudança"}`);
             doc.text(`SIMEI: ${r.simei?.optante ? "SIM" : "NÃO"}`);
             doc.moveDown(1);
           });

@@ -245,10 +245,14 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
     if (results.length === 0) return;
     setExporting(format);
     try {
+      const resultsWithDiff = results.map(r => ({
+        ...r,
+        diffStatus: getDiffStatus(r).text
+      }));
       const response = await fetch("/api/cnpj-consulta/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ results, format })
+        body: JSON.stringify({ results: resultsWithDiff, format })
       });
       if (!response.ok) throw new Error("Erro na exportação");
       
@@ -419,10 +423,10 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
                       <table className="w-full text-left text-sm">
                         <thead className="bg-gray-900/50 border-b border-gray-700/50 text-gray-400">
                           <tr>
+                            <th className="px-6 py-4 font-medium">Simples Nacional</th>
                             <th className="px-6 py-4 font-medium">CNPJ</th>
                             <th className="px-6 py-4 font-medium">Razão Social</th>
                             <th className="px-6 py-4 font-medium">Situação</th>
-                            <th className="px-6 py-4 font-medium">Simples Nacional</th>
                             <th className="px-6 py-4 font-medium">Status / Diff</th>
                           </tr>
                         </thead>
@@ -431,20 +435,6 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
                             const diff = getDiffStatus(r);
                             return (
                             <tr key={idx} className="hover:bg-gray-800/50 transition-colors">
-                              <td className="px-6 py-4 font-mono text-gray-300">
-                                {formatCnpj(r.cnpj)}
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="font-medium text-white">{r.razaoSocial}</div>
-                                <div className="text-xs text-gray-500">{r.nomeFantasia !== "N/A" ? r.nomeFantasia : ""}</div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  r.situacao.toUpperCase() === "ATIVA" ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"
-                                }`}>
-                                  {r.situacao}
-                                </span>
-                              </td>
                               <td className="px-6 py-4">
                                 {r.simples.optante ? (
                                   <span className="inline-flex items-center gap-1.5 text-green-400 bg-green-400/10 px-2.5 py-1 rounded-lg">
@@ -460,6 +450,20 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
                                 {r.simples.dataOpcao && (
                                   <div className="text-xs text-gray-500 mt-1">Desde {r.simples.dataOpcao.split('-').reverse().join('/')}</div>
                                 )}
+                              </td>
+                              <td className="px-6 py-4 font-mono text-gray-300">
+                                {formatCnpj(r.cnpj)}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="font-medium text-white">{r.razaoSocial}</div>
+                                <div className="text-xs text-gray-500">{r.nomeFantasia !== "N/A" ? r.nomeFantasia : ""}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  r.situacao.toUpperCase() === "ATIVA" ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"
+                                }`}>
+                                  {r.situacao}
+                                </span>
                               </td>
                               <td className="px-6 py-4">
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${diff.color}`}>

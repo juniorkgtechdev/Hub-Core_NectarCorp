@@ -301,14 +301,13 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
         <main className="flex-1 flex flex-col h-screen overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+          <header className="px-8 pt-8 shrink-0">
             {/* Page Header */}
             <div>
               <h1 className={`text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Consulta de Simples Nacional</h1>
               <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Cole uma lista de CNPJs para consultar dados cadastrais e o Simples.</p>
             </div>
           </header>
-
           <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
             {/* Stats (Cards) na parte superior */}
             {hasSearched && (

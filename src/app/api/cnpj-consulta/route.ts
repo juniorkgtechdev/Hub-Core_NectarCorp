@@ -47,6 +47,14 @@ export async function POST(req: Request) {
           throw new Error("Rate limit atingido (Muitas requisições).");
         }
 
+        if (response.status === 404) {
+          throw new Error("CNPJ não encontrado na base de dados pública (Pode ser um CNPJ gerado/fictício ou muito recente).");
+        }
+
+        if (response.status === 403) {
+          throw new Error("Acesso bloqueado pelo servidor da API (403 Forbidden). Isso geralmente ocorre por bloqueios de segurança (ex: Cloudflare) ou por consultar muitos CNPJs seguidos.");
+        }
+
         if (!response.ok) {
           throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
         }

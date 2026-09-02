@@ -19,7 +19,7 @@ async function test() {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash-lite",
-      contents: "Responda pode extrir dados ede um arquivo pdf?"
+      contents: "Responda pode extrir dados de um arquivo pdf?"
     });
 
     console.log("SUCESSO na comunicação com a IA!");

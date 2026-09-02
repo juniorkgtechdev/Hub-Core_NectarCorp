@@ -46,6 +46,12 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
   const [errors, setErrors] = useState<CnpjError[]>([]);
   const [invalidLocal, setInvalidLocal] = useState<string[]>([]);
   const [totalParsed, setTotalParsed] = useState(0);
+  
+  // Progress state
+  const [progress, setProgress] = useState(0);
+  const [currentProgress, setCurrentProgress] = useState(0);
+  const [totalProgress, setTotalProgress] = useState(0);
+
   const [hasSearched, setHasSearched] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
@@ -144,21 +150,41 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
       let apiErrors: CnpjError[] = [];
       
       if (cnpjsToFetch.length > 0) {
-        const response = await fetch("/api/cnpj-consulta", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ cnpjs: cnpjsToFetch }),
-        });
+        setProgress(0);
+        setCurrentProgress(0);
+        setTotalProgress(cnpjsToFetch.length);
 
-        if (!response.ok) {
-          throw new Error("Falha ao comunicar com o servidor");
+        for (let i = 0; i < cnpjsToFetch.length; i++) {
+          const cnpj = cnpjsToFetch[i];
+          
+          try {
+            const response = await fetch("/api/cnpj-consulta", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ cnpjs: [cnpj] }),
+            });
+
+            if (!response.ok) {
+              apiErrors.push({ cnpj, message: "Falha ao comunicar com o servidor" });
+            } else {
+              const data = await response.json();
+              apiResults.push(...(data.success || []));
+              apiErrors.push(...(data.errors || []));
+            }
+          } catch (e: any) {
+            apiErrors.push({ cnpj, message: e.message || "Erro de rede" });
+          }
+
+          setCurrentProgress(i + 1);
+          setProgress(((i + 1) / cnpjsToFetch.length) * 100);
+
+          // Delay no frontend para respeitar o rate limit da API gratuita
+          if (i < cnpjsToFetch.length - 1) {
+            await new Promise(r => setTimeout(r, 1500));
+          }
         }
-
-        const data = await response.json();
-        apiResults = data.success || [];
-        apiErrors = data.errors || [];
 
         // Auto-save the newly fetched ones
         if (apiResults.length > 0) {
@@ -353,7 +379,25 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
                 placeholder="Exemplo:&#10;12.345.678/0001-90&#10;98.765.432/0001-10"
                 className="w-full h-40 bg-gray-900/50 border border-gray-700 rounded-xl p-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-mono text-sm resize-none"
               />
-              <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex-1 mr-6">
+                  {loading && totalProgress > 0 && (
+                    <div className="flex flex-col gap-1 w-full max-w-md animate-in fade-in duration-300">
+                      <div className="flex justify-between text-xs font-medium text-gray-400">
+                        <span>Processando consultas...</span>
+                        <span className="text-purple-400">{currentProgress} de {totalProgress}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-300 relative"
+                          style={{ width: `${progress}%` }}
+                        >
+                          <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={handleConsultar}
                   disabled={loading || !inputText.trim()}

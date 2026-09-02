@@ -5,12 +5,15 @@ import { LogOut, Settings, Sun, Moon, FileText, Lock, Building } from "lucide-re
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import InteractiveBackground from "@/components/InteractiveBackground";
+import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
 import { useRouter } from "next/navigation";
 
 type Tenant = { id: string; name: string; slug: string; logoUrl: string | null; moduleContracts?: boolean };
 
 export default function PortalClient({ tenant }: { tenant: Tenant }) {
   const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "SUPERADMIN" || session?.user?.role === "ADMIN";
   const isSuperAdmin = session?.user?.role === "SUPERADMIN";
   
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -24,56 +27,16 @@ export default function PortalClient({ tenant }: { tenant: Tenant }) {
   };
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col relative transition-colors duration-500 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-slate-50 text-slate-800'}`}>
+    <div className={`flex h-screen overflow-hidden font-sans relative transition-colors duration-500 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-slate-50 text-slate-800'}`}>
       {isDark && <InteractiveBackground colorful={false} staticMode={true} />}
 
-      <nav className={`relative z-10 px-6 py-4 flex items-center justify-between transition-colors ${
-        isDark ? 'bg-black/40 backdrop-blur-md border-b border-white/10' : 'bg-white border-b border-slate-200 shadow-sm'
-      }`}>
-        <div className="flex items-center gap-3">
-          {tenant.logoUrl ? (
-            <div className={`relative w-8 h-8 rounded-md overflow-hidden p-0.5 border flex items-center justify-center ${
-              isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'
-            }`}>
-              {/* @next/next/no-img-element */}
-              <img src={tenant.logoUrl.startsWith('/uploads/') ? `/api${tenant.logoUrl}` : tenant.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-            </div>
-          ) : (
-            <div className="w-8 h-8 bg-indigo-500/20 border border-indigo-500/30 rounded-lg flex items-center justify-center text-indigo-500 font-bold">
-              {tenant.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <span className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{tenant.name}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className={`p-2 rounded-lg transition-colors ${
-              isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'
-            }`}
-            title="Alternar Tema"
-          >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-          
-          {isSuperAdmin && (
-            <Link href="/superadmin" className={`text-sm font-medium transition-colors flex items-center gap-1 ${
-              isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600'
-            }`}>
-              <Settings className="w-4 h-4" /> Admin Global
-            </Link>
-          )}
-          <button onClick={async () => {
-            await signOut({ redirect: false });
-            window.location.href = "/";
-          }} className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 ml-2 border-l pl-4 border-slate-200 dark:border-white/10">
-            <LogOut className="w-4 h-4" /> Sair
-          </button>
-        </div>
-      </nav>
+      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} />
 
-      <main className="relative z-10 flex-1 p-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
+        <Header isDark={isDark} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
+
+        <main className="flex-1 p-8 flex flex-col overflow-y-auto">
+          <div className="max-w-6xl mx-auto space-y-8 w-full">
           <header className="mb-10">
             <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Portal de Recursos</h1>
             <p className={`mt-2 text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Selecione o módulo que deseja acessar.</p>
@@ -142,5 +105,6 @@ export default function PortalClient({ tenant }: { tenant: Tenant }) {
         </div>
       </main>
     </div>
-  );
+  </div>
+);
 }

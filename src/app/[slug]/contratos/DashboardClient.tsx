@@ -5,8 +5,9 @@ import { UploadCloud, FileText, Loader2, Download, FileDown, LogOut, Settings, U
 import { ExtractedData } from "@/types";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import Image from "next/image";
 import InteractiveBackground from "@/components/InteractiveBackground";
+import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
 
 type Tenant = { id: string; name: string; slug: string; logoUrl: string | null; razaoSocial?: string | null; cnpj?: string | null; endereco?: string | null };
 type User = { id: string; name: string | null; email: string; role: string; createdAt: string };
@@ -30,14 +31,6 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
   // Theme Management
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const isDark = theme === 'dark';
-
-  // Users Management State
-  const [showTeamModal, setShowTeamModal] = useState(false);
-  const [teamUsers, setTeamUsers] = useState<User[]>([]);
-  const [loadingTeam, setLoadingTeam] = useState(false);
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "USER" });
-  const [teamError, setTeamError] = useState<string | null>(null);
 
   // Templates & History State
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -216,98 +209,17 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
     } catch (e) {}
   };
 
-  // Funções do Team Modal...
-  const fetchTeam = async () => {
-    setLoadingTeam(true);
-    try {
-      const res = await fetch("/api/tenant/users");
-      if (res.ok) setTeamUsers(await res.json());
-    } catch (e) {} finally { setLoadingTeam(false); }
-  };
-  const handleCreateOrUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newUser.email) return;
-    setLoadingTeam(true); setTeamError(null);
-    try {
-      const method = editingUserId ? "PUT" : "POST";
-      const payload: any = { ...newUser, newRole: newUser.role };
-      if (editingUserId) payload.id = editingUserId;
-      const res = await fetch("/api/tenant/users", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (!res.ok) throw new Error((await res.json()).error || "Erro ao salvar usuário");
-      setEditingUserId(null); setNewUser({ name: "", email: "", password: "", role: "USER" }); await fetchTeam();
-    } catch (e: any) { setTeamError(e.message); } finally { setLoadingTeam(false); }
-  };
-  const handleEditUser = (u: User) => { setEditingUserId(u.id); setNewUser({ name: u.name || "", email: u.email, role: u.role, password: "" }); };
-  const cancelEdit = () => { setEditingUserId(null); setNewUser({ name: "", email: "", password: "", role: "USER" }); setTeamError(null); };
-  const handleDeleteUser = async (id: string) => {
-    if (!confirm("Remover usuário?")) return;
-    setLoadingTeam(true);
-    try { await fetch(`/api/tenant/users?id=${id}`, { method: "DELETE" }); await fetchTeam(); } catch (e) {} finally { setLoadingTeam(false); }
-  };
-  useEffect(() => { if (showTeamModal) fetchTeam(); }, [showTeamModal]);
+
 
   return (
     <div className={`flex h-screen overflow-hidden font-sans relative transition-colors duration-500 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-slate-50 text-slate-800'}`}>
       {isDark && <InteractiveBackground colorful={false} staticMode={true} />}
 
-      {/* Sidebar */}
-      <aside className={`relative z-20 w-64 border-r flex flex-col transition-all duration-300 ${isDark ? 'bg-[#0a0a0a]/80 backdrop-blur-xl border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-        <div className="p-6 flex items-center gap-3">
-          {tenant.logoUrl ? (
-            <div className={`relative w-10 h-10 rounded-xl overflow-hidden p-0.5 border flex items-center justify-center ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
-              <img src={tenant.logoUrl.startsWith('/uploads/') ? `/api${tenant.logoUrl}` : tenant.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-            </div>
-          ) : (
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${isDark ? 'bg-[#D9AE55]/20 text-[#D9AE55] border border-[#D9AE55]/30' : 'bg-indigo-100 text-indigo-600 border border-indigo-200'}`}>
-              {tenant.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div>
-            <h2 className={`font-bold text-lg tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-              {tenant.name}
-            </h2>
-            <p className={`text-xs font-medium tracking-wider uppercase ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Contratos</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          <Link href={`/${tenant.slug}/dashboard`} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'}`}>
-            <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <span className="font-medium">Dashboard</span>
-          </Link>
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${isDark ? 'bg-[#D9AE55]/10 text-[#D9AE55]' : 'bg-indigo-50 text-indigo-700'}`}>
-            <FileText className="w-5 h-5" />
-            <span>Gerador de Contratos</span>
-          </div>
-        </nav>
-      </aside>
+      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} />
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <nav className={`px-6 py-4 flex items-center justify-end transition-colors ${
-          isDark ? 'bg-black/40 backdrop-blur-md border-b border-white/10' : 'bg-white border-b border-slate-200 shadow-sm'
-        }`}>
-
-        <div className="flex items-center gap-4">
-          <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={`p-2 rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'}`} title="Alternar Tema">
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-          {isAdmin && (
-            <button onClick={() => setShowTeamModal(true)} className={`text-sm font-medium transition-colors flex items-center gap-1 px-3 py-1.5 rounded-lg border ${isDark ? 'text-slate-300 hover:text-white bg-white/5 border-white/10 hover:bg-white/10' : 'text-slate-600 hover:text-indigo-600 bg-white border-slate-200 hover:bg-slate-50'}`}>
-              <Users className="w-4 h-4" /> Equipe
-            </button>
-          )}
-          {isSuperAdmin && (
-            <Link href="/superadmin" className={`text-sm font-medium transition-colors flex items-center gap-1 ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>
-              <Settings className="w-4 h-4" /> Admin Global
-            </Link>
-          )}
-
-          <button onClick={async () => { await signOut({ redirect: false }); window.location.href = "/"; }} className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 ml-2 border-l pl-4 border-slate-200 dark:border-white/10">
-            <LogOut className="w-4 h-4" /> Sair
-          </button>
-        </div>
-      </nav>
+        <Header isDark={isDark} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
 
       <main className="flex-1 p-8 flex flex-col overflow-y-auto">
         <div className="max-w-6xl mx-auto w-full space-y-8 flex-1">
@@ -556,187 +468,6 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
           )}
         </div>
       </main>
-
-      {/* Team Management Modal */}
-      {showTeamModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className={`border rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-colors relative ${
-            isDark ? 'bg-[#0f0f11] border-white/10' : 'bg-white border-slate-200'
-          }`}>
-            <div className={`p-6 border-b flex items-center justify-between ${
-              isDark ? 'border-white/10 bg-white/5' : 'border-slate-100 bg-slate-50'
-            }`}>
-              <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                <Shield className={`w-5 h-5 ${isDark ? 'text-[#D9AE55]' : 'text-indigo-600'}`} />
-                Gerenciar Equipe ({tenant.name})
-              </h2>
-              <button 
-                onClick={() => { setShowTeamModal(false); cancelEdit(); }}
-                className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-auto p-6 flex flex-col lg:flex-row gap-8">
-              {/* Add/Edit User Form */}
-              <div className="w-full lg:w-1/3 space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                    {editingUserId ? "Editar Usuário" : "Novo Usuário"}
-                  </h3>
-                  {editingUserId && (
-                    <button onClick={cancelEdit} className="text-xs text-slate-500 hover:text-slate-700">
-                      Cancelar
-                    </button>
-                  )}
-                </div>
-                {teamError && (
-                  <div className={`text-sm p-3 rounded-lg border ${
-                    isDark ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-red-600 bg-red-50 border-red-200'
-                  }`}>
-                    {teamError}
-                  </div>
-                )}
-                <form onSubmit={handleCreateOrUpdateUser} className="space-y-4">
-                  <div>
-                    <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Nome</label>
-                    <input 
-                      type="text" required value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})}
-                      className={`w-full rounded-lg px-3 py-2 text-sm outline-none border transition-colors ${
-                        isDark 
-                          ? 'bg-black/50 border-white/10 text-white focus:border-[#D9AE55]' 
-                          : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Email</label>
-                    <input 
-                      type="email" required value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})}
-                      className={`w-full rounded-lg px-3 py-2 text-sm outline-none border transition-colors ${
-                        isDark 
-                          ? 'bg-black/50 border-white/10 text-white focus:border-[#D9AE55]' 
-                          : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {editingUserId ? "Nova Senha (opcional)" : "Senha (Opcional - E-mail de convite será enviado)"}
-                    </label>
-                    <input 
-                      type="password" required={false} value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})}
-                      placeholder={editingUserId ? "Deixe em branco para não alterar" : "Deixe em branco para auto-gerar"}
-                      className={`w-full rounded-lg px-3 py-2 text-sm outline-none border transition-colors ${
-                        isDark 
-                          ? 'bg-black/50 border-white/10 text-white focus:border-[#D9AE55] placeholder:text-slate-600' 
-                          : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-400'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Permissão</label>
-                    <select 
-                      value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}
-                      className={`w-full rounded-lg px-3 py-2 text-sm outline-none border transition-colors ${
-                        isDark 
-                          ? 'bg-black/50 border-white/10 text-white focus:border-[#D9AE55]' 
-                          : 'bg-white border-slate-300 text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
-                      }`}
-                    >
-                      <option value="USER">Usuário (USER)</option>
-                      <option value="ADMIN">Administrador (ADMIN)</option>
-                    </select>
-                  </div>
-                  <button 
-                    disabled={loadingTeam}
-                    type="submit"
-                    className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${
-                      isDark 
-                        ? 'bg-white/10 hover:bg-white/20 border border-white/10 text-white'
-                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
-                    }`}
-                  >
-                    {loadingTeam ? <Loader2 className="w-4 h-4 animate-spin" /> : editingUserId ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                    {editingUserId ? "Salvar Alterações" : "Cadastrar Usuário"}
-                  </button>
-                </form>
-              </div>
-
-              {/* Users List */}
-              <div className="w-full lg:w-2/3 flex flex-col">
-                <h3 className={`font-semibold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>Usuários Ativos</h3>
-                <div className={`flex-1 rounded-xl border overflow-hidden ${
-                  isDark ? 'bg-black/30 border-white/10' : 'bg-slate-50 border-slate-200'
-                }`}>
-                  {teamUsers.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500 text-sm">Carregando usuários...</div>
-                  ) : (
-                    <table className="w-full text-left text-sm">
-                      <thead className={`text-xs uppercase border-b ${
-                        isDark ? 'bg-black/40 text-slate-400 border-white/10' : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}>
-                        <tr>
-                          <th className="px-4 py-3">Nome / Email</th>
-                          <th className="px-4 py-3">Nível</th>
-                          <th className="px-4 py-3 text-right">Ação</th>
-                        </tr>
-                      </thead>
-                      <tbody className={isDark ? 'text-slate-300' : 'text-slate-700'}>
-                        {teamUsers.map(user => (
-                          <tr key={user.id} className={`border-b transition-colors group ${
-                            isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'
-                          }`}>
-                            <td className="px-4 py-3">
-                              <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{user.name || '-'}</div>
-                              <div className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{user.email}</div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                user.role === 'ADMIN' || user.role === 'SUPERADMIN' 
-                                  ? (isDark ? 'bg-[#D9AE55]/20 text-[#D9AE55]' : 'bg-indigo-100 text-indigo-700')
-                                  : (isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-200 text-slate-600')
-                              }`}>
-                                {user.role}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button 
-                                  onClick={() => handleEditUser(user)}
-                                  className={`p-1.5 rounded-lg transition-colors ${
-                                    isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'
-                                  }`}
-                                  title="Editar Usuário"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                {user.id !== session?.user?.id && user.role !== 'SUPERADMIN' && (
-                                  <button 
-                                    onClick={() => handleDeleteUser(user.id)}
-                                    className={`p-1.5 rounded-lg transition-colors ${
-                                      isDark ? 'text-slate-500 hover:text-red-400 hover:bg-red-500/10' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                                    }`}
-                                    title="Remover Usuário"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      </div>
     </div>
   );
 }

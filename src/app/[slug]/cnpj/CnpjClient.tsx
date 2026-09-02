@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { Loader2, Building, CheckCircle, XCircle, AlertCircle, FileText, Search, LayoutDashboard, Save, Download, FileSpreadsheet } from "lucide-react";
 import InteractiveBackground from "@/components/InteractiveBackground";
+import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 
 type Tenant = { id: string; name: string; slug: string; logoUrl: string | null };
@@ -32,6 +35,13 @@ type CnpjError = {
 };
 
 export default function CnpjClient({ tenant }: { tenant: Tenant }) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "SUPERADMIN" || session?.user?.role === "ADMIN";
+  const isSuperAdmin = session?.user?.role === "SUPERADMIN";
+  
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const isDark = theme === 'dark';
+
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<CnpjResult[]>([]);
@@ -285,42 +295,22 @@ export default function CnpjClient({ tenant }: { tenant: Tenant }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans selection:bg-purple-500/30">
-      <InteractiveBackground />
+    <div className={`min-h-screen font-sans flex h-screen overflow-hidden relative transition-colors duration-500 ${isDark ? 'bg-gray-900 text-white selection:bg-purple-500/30' : 'bg-slate-50 text-slate-800 selection:bg-purple-500/30'}`}>
+      {isDark && <InteractiveBackground />}
       
-      <div className="relative z-10 flex h-screen">
-        {/* Sidebar */}
-        <aside className="w-64 bg-gray-900/50 backdrop-blur-xl border-r border-gray-800 flex flex-col transition-all duration-300">
-          <div className="p-6 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <Building className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                {tenant.name}
-              </h2>
-              <p className="text-xs text-gray-500 font-medium tracking-wider uppercase">CNPJ Consulta</p>
-            </div>
-          </div>
+      <Sidebar tenant={tenant} isDark={isDark} isAdmin={isAdmin} />
 
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            <Link href={`/${tenant.slug}/dashboard`} className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all group">
-              <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <span className="font-medium">Dashboard</span>
-            </Link>
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-500/10 text-purple-400 font-medium">
-              <Search className="w-5 h-5" />
-              <span>Consultar CNPJ</span>
-            </div>
-          </nav>
-        </aside>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
+        <Header isDark={isDark} setTheme={setTheme} isSuperAdmin={isSuperAdmin} />
 
-        {/* Main Content */}
         <main className="flex-1 flex flex-col h-screen overflow-hidden">
-          <header className="h-20 bg-gray-900/30 backdrop-blur-md border-b border-gray-800/50 flex items-center justify-between px-8 shrink-0">
+          <header className={`h-20 backdrop-blur-md border-b flex items-center justify-between px-8 shrink-0 transition-colors ${
+            isDark ? 'bg-gray-900/30 border-gray-800/50' : 'bg-white border-slate-200'
+          }`}>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Consulta de Simples Nacional</h1>
-              <p className="text-sm text-gray-400">Cole uma lista de CNPJs para consultar dados cadastrais e o Simples.</p>
+              <h1 className={`text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Consulta de Simples Nacional</h1>
+              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Cole uma lista de CNPJs para consultar dados cadastrais e o Simples.</p>
             </div>
           </header>
 

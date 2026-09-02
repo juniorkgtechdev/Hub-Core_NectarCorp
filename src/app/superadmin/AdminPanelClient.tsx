@@ -252,9 +252,10 @@ export default function AdminPanelClient({
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
-      {/* Coluna 1: Formulários */}
-      <div className="space-y-8">
+    <div className="space-y-8 relative z-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Coluna 1: Formulários */}
+        <div className="space-y-8">
         
         {/* Formulário de Empresa */}
         <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10 relative">
@@ -449,9 +450,11 @@ export default function AdminPanelClient({
             </ul>
           )}
         </div>
+      </div>
 
-        {/* Lista de Usuários */}
-        <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10">
+      {/* Lista de Usuários - Largura Total */}
+      <div className="w-full">
+        <div className="bg-[#0f0f11]/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/10 w-full">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-xl font-bold text-white">Usuários Cadastrados</h2>
             <select 
@@ -470,7 +473,7 @@ export default function AdminPanelClient({
           {filteredUsers.length === 0 ? (
             <p className="text-slate-500 text-sm">Nenhum usuário encontrado para o filtro atual.</p>
           ) : (
-            <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Administradores */}
               <div>
                 <h3 className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider flex items-center gap-2">
@@ -503,7 +506,6 @@ export default function AdminPanelClient({
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

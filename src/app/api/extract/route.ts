@@ -97,7 +97,7 @@ export async function POST(req: Request) {
           errors.push({ fileName: files[index].name, message: "Nenhum dado legível encontrado na ficha." });
         }
       } else {
-        errors.push({ fileName: files[index].name, message: "Falha na comunicação com a IA ou formato inválido." });
+        errors.push({ fileName: files[index].name, message: `Falha: ${result.reason?.message || "Erro desconhecido"}` });
       }
     });
 

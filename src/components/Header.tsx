@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { Sun, Moon, Settings, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Header({ isDark, setTheme, isSuperAdmin }: { isDark: boolean; setTheme: (theme: 'dark' | 'light') => void; isSuperAdmin?: boolean }) {
+  const router = useRouter();
+  
   return (
     <nav className={`relative z-10 px-6 py-4 flex items-center justify-end transition-colors ${isDark ? 'bg-black/40 backdrop-blur-md border-b border-white/10' : 'bg-white border-b border-slate-200 shadow-sm shrink-0'}`}>
       <div className="flex items-center gap-4">
@@ -16,7 +19,7 @@ export default function Header({ isDark, setTheme, isSuperAdmin }: { isDark: boo
             <Settings className="w-4 h-4" /> Admin Global
           </Link>
         )}
-        <button onClick={async () => { await signOut({ redirect: false }); window.location.href = "/"; }} className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 ml-2 border-l pl-4 border-slate-200 dark:border-white/10">
+        <button onClick={async () => { await signOut({ redirect: false }); router.push("/"); }} className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 ml-2 border-l pl-4 border-slate-200 dark:border-white/10">
           <LogOut className="w-4 h-4" /> Sair
         </button>
       </div>

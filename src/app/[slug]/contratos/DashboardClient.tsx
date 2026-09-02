@@ -468,6 +468,7 @@ export default function DashboardClient({ tenant: initialTenant }: { tenant: Ten
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 }
